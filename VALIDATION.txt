@@ -1,7 +1,11 @@
 Buda iOS 0.3.0 (build 4)
 Common Kotlin/JVM compilation: PASS
 Common tests: 27 PASS (18 previous + 9 messages tests)
-iOS native compilation and IPA packaging: PENDING
+iOS native compilation and IPA packaging: PASS
+Build: https://github.com/prezaxx/buda-ios-prototype/actions/runs/41536149647
+Application source commit: 2eebeb8
+IPA archive integrity / bundle ID / version / executable: PASS
+IPA SHA256: 8807a7eb3e11c0837de5448e4748a10c27d4a41c609cf5ac1c6ebfbeb7000872
 
 Messages: inbox, explicit mailbox selection, 50-row pagination, full text,
 HTTPS attachment links. No send/read-status mutation calls in Buda UI.
