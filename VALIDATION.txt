@@ -1,7 +1,19 @@
-Buda iOS 0.2.0
+Buda iOS 0.2.0 (build 3)
 Common Kotlin/JVM compilation: PASS
 Common tests: 18 PASS
-iOS native compilation: see GitHub Actions for current commit
-New diary screens and Keychain behavior on real account/device: NOT VERIFIED
-Grades and student switching in prior 0.1.1: confirmed by user
-No production-ready or complete Etna feature parity claim.
+iOS native compilation and IPA packaging: PASS
+Build: https://github.com/prezaxx/buda-ios-prototype/actions/runs/41531300909
+Application source commit: d6463cd
+IPA SHA256: 9a68b1ff1bf1282f9f0406a7abc6009122aa4c1bd2c45be0b6ac616f13eaaa39
+
+User acceptance: the user reports that everything works in version 0.2.
+This is user-reported validation on their account/device, not an independently
+observed test or a detailed per-feature test log. It does not establish
+compatibility with every school, account type or device.
+Earlier 0.1.1 grades and student switching were also confirmed by the user.
+
+Implemented: grades, student switching, schedule/substitutions, attendance,
+exams, homework, notes, announcements, school averages/classification,
+and optional session storage in iOS Keychain.
+Not implemented: messages, push notifications, sending homework answers
+or attendance justifications. No complete Etna feature parity claim.

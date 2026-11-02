@@ -29,5 +29,6 @@ Testy czesci wspolnej: ./gradlew :composeApp:jvmTest.
 
 Kod API i host Xcode na bazie referencji MIT, zobacz NOTICE.txt i LICENSE-UPSTREAM.
 To osobny klient, nie przekonwertowane etna.apk ani oficjalny klient VULCAN.
-Nowe funkcje wymagaja sprawdzenia na koncie; nie gwarantujemy zgodnosci
+Uzytkownik potwierdzil dzialanie wersji 0.2 na swoim koncie i urzadzeniu.
+Nie jest to niezalezny test kazdej funkcji. Nie gwarantujemy zgodnosci
 z kazda szkola ani dostepnosci wszystkich danych w danym planie konta.
