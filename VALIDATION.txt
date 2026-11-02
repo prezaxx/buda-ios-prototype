@@ -1,7 +1,7 @@
+Buda iOS 0.2.0
 Common Kotlin/JVM compilation: PASS
-Paging tests: 2 PASS
-Info.plist syntax: PASS
-iOS framework compile/link: NOT RUN (Windows host)
-Xcode build and device test: NOT RUN
-Live login/student/grade API: NOT TESTED
-Source reference commit: 73d35c3d4a331fe009919004df860c9e97067374
+Common tests: 18 PASS
+iOS native compilation: see GitHub Actions for current commit
+New diary screens and Keychain behavior on real account/device: NOT VERIFIED
+Grades and student switching in prior 0.1.1: confirmed by user
+No production-ready or complete Etna feature parity claim.

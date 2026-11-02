@@ -19,6 +19,17 @@ open class SzpontApi(
     protected val szpontHttpClient: SzpontHttpClient
 ) {
 
+    suspend fun readDiaryPayload(restUrl: String, pupilId: Int, endpoint: String,
+        query: Map<String, Any?>): kotlinx.serialization.json.JsonElement {
+        val allowed = setOf("mobile/schedule/withchanges/byPupil", "mobile/schedule/extra/withchanges/byPupil",
+            "mobile/presence/extra/byPupil", "mobile/exam/byPupil", "mobile/homework/byPupil",
+            "mobile/note/byPupil", "mobile/announcement/byPupil", "mobile/grade/average/byPupil",
+            "mobile/grade/summary/byPupil")
+        require(endpoint in allowed)
+        return szpontHttpClient.request("GET", endpoint, restUrl, pupilId, query)
+            ?: error("MissingDiaryEnvelope")
+    }
+
     open suspend fun getAccounts(pupilId: Int? = null): List<Account> {
         val envelope = szpontHttpClient.request(
             method = "GET",
