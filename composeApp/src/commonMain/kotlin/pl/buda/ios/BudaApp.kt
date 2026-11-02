@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
   Surface(Modifier.fillMaxSize()) {
    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
     Text("Buda iOS",style=MaterialTheme.typography.headlineLarge)
-    Text("Prototyp 0.1 • eduVULCAN",style=MaterialTheme.typography.labelLarge)
+    Text("Prototyp 0.1.1 • eduVULCAN",style=MaterialTheme.typography.labelLarge)
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
     if(state.students.isEmpty()) {
@@ -56,11 +56,11 @@ import androidx.compose.ui.unit.dp
      LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp)) {
       items(state.grades,key={it.id}) { grade ->
        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-        Text(grade.column.subject.name,style=MaterialTheme.typography.titleMedium)
+        Text(grade.subject,style=MaterialTheme.typography.titleMedium)
         Text(grade.content,style=MaterialTheme.typography.headlineMedium)
-        Text(grade.column.name)
+        Text(grade.description)
         if(grade.comment.isNotBlank()) Text(grade.comment)
-        Text(grade.createdAt.date.toString(),style=MaterialTheme.typography.bodySmall)
+        Text(grade.createdAt.take(10),style=MaterialTheme.typography.bodySmall)
        } }
       }
      }

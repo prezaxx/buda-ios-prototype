@@ -3,7 +3,7 @@ package pl.buda.ios
 import io.github.szpontium.api.hebe.*
 import io.github.szpontium.api.hebe.credentials.RsaCredential
 import io.github.szpontium.api.hebe.models.Account
-import io.github.szpontium.api.hebe.models.Grade
+import kotlinx.serialization.SerializationException
 import io.github.szpontium.api.prometheus.PrometheusLoginHelper
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpTimeout
@@ -19,7 +19,7 @@ data class Student(val account: Account, val api: SzpontHebeCeApi) {
 data class ScreenState(
  val busy: Boolean = false, val students: List<Student> = emptyList(),
  val selected: Int? = null, val periodId: Int? = null,
- val grades: List<Grade> = emptyList(), val error: String? = null
+ val grades: List<GradeRow> = emptyList(), val error: String? = null
 )
 class Prototype(private val scope: CoroutineScope) {
  private val client = HttpClient { install(HttpTimeout) { requestTimeoutMillis = 45000 } }
@@ -45,7 +45,7 @@ class Prototype(private val scope: CoroutineScope) {
     }
     mutable.value=ScreenState(students=students,error=if(students.isEmpty()) "Nie znaleziono uczniów." else null)
    } catch(e: CancellationException) { throw e }
-     catch(e: Exception) { mutable.value=ScreenState(error=safeError(e)) }
+     catch(e: Exception) { currentCoroutineContext().ensureActive(); mutable.value=ScreenState(error=safeError(e)) }
    finally { helper.close() }
   }
  }
@@ -66,11 +66,11 @@ class Prototype(private val scope: CoroutineScope) {
   job=scope.launch {
    mutable.value=before.copy(busy=true,grades=emptyList(),error=null)
    try {
-    val grades=loadPages { last -> s.api.getGrades(s.account.unit.restUrl,s.account.unit.id,s.account.pupil.id,period,lastId=last,pageSize=500) }
+    val grades=loadPages { last -> parseGrades(s.api.getGradePayload(s.account.unit.restUrl,s.account.unit.id,s.account.pupil.id,period,lastId=last,pageSize=500), s.account.pupil.id) }
     ensureActive()
     mutable.value=mutable.value.copy(busy=false,grades=grades.sortedByDescending { it.createdAt })
    } catch(e: CancellationException) { throw e }
-     catch(e: Exception) { mutable.value=mutable.value.copy(busy=false,error=safeError(e)) }
+     catch(e: Exception) { currentCoroutineContext().ensureActive(); mutable.value=mutable.value.copy(busy=false,error=safeError(e, "oceny")) }
   }
  }
  fun back() { job?.cancel();mutable.value=mutable.value.copy(selected=null,periodId=null,grades=emptyList(),error=null,busy=false) }
@@ -89,9 +89,11 @@ internal suspend fun <T> collectPages(pageSize: Int, id: (T)->Int, fetch: suspen
  }
  error("PaginationLimit")
 }
-private suspend fun loadPages(fetch:suspend(Int)->List<Grade>)=collectPages(500,{ g:Grade->g.id },fetch)
-private fun safeError(e:Exception):String {
+private suspend fun loadPages(fetch:suspend(Int)->List<GradeRow>)=collectPages(500,{ g:GradeRow->g.id },fetch)
+internal fun safeError(e:Exception, stage:String="logowanie"):String {
+ if(e is GradeFormatException) return "Nieobsługiwany format ocen: ${e.field}. Pozostajesz na koncie ucznia; możesz wrócić do listy lub ponowić pobieranie."
+ if(e is SerializationException) return "Nieobsługiwany format odpowiedzi ($stage). To nie potwierdza błędnego hasła ani braku zgód. Kod: ${e::class.simpleName}."
  // Do not display server bodies, URLs, tokens, or passwords in diagnostics.
  val type=e::class.simpleName ?: "UnknownError"
- return "Nie udało się pobrać danych ($type). Sprawdź logowanie w eduvulcan.pl i ewentualne wymagane zgody. Spróbuj ponownie."
+ return "Nie udało się pobrać danych ($stage, $type). Spróbuj ponownie. Sesja ucznia nie została usunięta."
 }

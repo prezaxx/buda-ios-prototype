@@ -148,6 +148,32 @@ open class SzpontApi(
         return szpontJson.decodeFromJsonElement(envelope!!)
     }
 
+    open suspend fun getGradePayload(
+        restUrl: String,
+        unitId: Int,
+        pupilId: Int,
+        periodId: Int,
+        lastSyncDate: LocalDateTime = EPOCH_START_DATETIME,
+        lastId: Int = INT_MIN,
+        pageSize: Int = DEFAULT_PAGE_SIZE
+    ): kotlinx.serialization.json.JsonElement {
+        val envelope = szpontHttpClient.request(
+            method = "GET",
+            restUrl = restUrl,
+            endpoint = "mobile/grade/byPupil",
+            query = mapOf(
+                "unitId" to unitId,
+                "pupilId" to pupilId,
+                "periodId" to periodId,
+                "lastSyncDate" to lastSyncDate,
+                "lastId" to lastId,
+                "pageSize" to pageSize
+            ),
+            pupilId = pupilId
+        )
+        return envelope ?: error("MissingGradeEnvelope")
+    }
+
     open suspend fun getGrades(
         restUrl: String,
         unitId: Int,
