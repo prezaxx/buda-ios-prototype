@@ -22,7 +22,11 @@ class MemoryVault : SessionVault {
  fun restore()=RsaCredential(type,restUrl,certificate,privateKey,fingerprint,null,deviceId,deviceOs,deviceModel)
  companion object { fun from(c:RsaCredential)=StoredCredential(c.type,c.restUrl,c.certificate,c.privateKey,c.fingerprint,c.deviceId,c.deviceOs,c.deviceModel) }
 }
-@Serializable data class StoredStudent(val account:Account,val credential:StoredCredential)
+@Serializable data class StoredCookie(val name:String,val value:String,val domain:String?,val path:String?,val secure:Boolean,val httpOnly:Boolean,val expires:Long?=null) {
+ fun restore()=io.ktor.http.Cookie(name=name,value=value,domain=domain,path=path,secure=secure,httpOnly=httpOnly,expires=expires?.let { io.ktor.util.date.GMTDate(it) })
+ companion object { fun from(c:io.ktor.http.Cookie)=StoredCookie(c.name,c.value,c.domain,c.path,c.secure,c.httpOnly,c.expires?.timestamp) }
+}
+@Serializable data class StoredStudent(val account:Account,val credential:StoredCredential,val tenant:String?=null,val cookies:List<StoredCookie> = emptyList())
 @Serializable data class StoredSession(val version:Int=1,val students:List<StoredStudent>,val selected:Int?=null)
 internal val sessionJson=Json { ignoreUnknownKeys=true }
 internal fun encodeSession(value:StoredSession)=sessionJson.encodeToString(StoredSession.serializer(),value)

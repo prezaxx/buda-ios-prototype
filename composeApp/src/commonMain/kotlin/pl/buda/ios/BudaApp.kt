@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
      Text("Buda",style=MaterialTheme.typography.headlineLarge)
-     Text("0.2",style=MaterialTheme.typography.labelLarge)
+     Text("0.3",style=MaterialTheme.typography.labelLarge)
     }
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.notice?.let { Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.tertiary) }
@@ -78,6 +78,9 @@ import androidx.compose.ui.unit.dp
       }
      }
      Row { TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Odśwież") };TextButton(onClick={logout=true}) { Text("Wyloguj") } }
+     if(state.section==Section.MESSAGES) {
+      MessagesPane(model.messages,Modifier.weight(1f))
+     } else {
      val uri=LocalUriHandler.current
      var linkError by remember(state.section,state.selected) { mutableStateOf(false) }
      LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=20.dp)) {
@@ -98,6 +101,7 @@ import androidx.compose.ui.unit.dp
         row.links.forEach { link -> TextButton(onClick={try { uri.openUri(link.url) } catch(e:Exception) { linkError=true }}) { Text(link.title) } }
        } }
       }
+     }
      }
     }
    }

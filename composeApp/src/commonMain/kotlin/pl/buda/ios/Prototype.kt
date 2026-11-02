@@ -12,7 +12,7 @@ import kotlinx.datetime.*
 import kotlinx.serialization.SerializationException
 import kotlin.time.Clock
 
-data class Student(val account:Account,val api:SzpontHebeCeApi,val credential:RsaCredential) {
+data class Student(val account:Account,val api:SzpontHebeCeApi,val credential:RsaCredential,val tenant:String?=null,val cookies:List<StoredCookie> = emptyList()) {
  val title get()="${account.pupil.firstName} ${account.pupil.surname}"
  val school get()=account.unit.displayName.ifBlank { account.unit.name }
 }
@@ -27,11 +27,12 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
  private val mutable=MutableStateFlow(ScreenState())
  val state=mutable.asStateFlow()
  private var job:Job?=null
+ val messages=MessagesController(scope)
  init {
   try {
    vault.read()?.let { value ->
     val stored=decodeSession(value)
-    val students=stored.students.map { item -> val c=item.credential.restore();Student(item.account,SzpontHebeCeApi(c,client),c) }
+    val students=stored.students.map { item -> val c=item.credential.restore();Student(item.account,SzpontHebeCeApi(c,client),c,item.tenant,item.cookies) }
     mutable.value=ScreenState(students=students)
     stored.selected?.let { select(it) }
    }
@@ -45,12 +46,12 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
  private fun save() {
   val s=mutable.value
   if(!s.remember || s.students.isEmpty()) return
-  val value=encodeSession(StoredSession(students=s.students.map { StoredStudent(it.account,StoredCredential.from(it.credential)) },selected=s.selected))
+  val value=encodeSession(StoredSession(students=s.students.map { StoredStudent(it.account,StoredCredential.from(it.credential),it.tenant,it.cookies) },selected=s.selected))
   if(!vault.write(value)) mutable.value=s.copy(notice="Sesja działa, ale nie udało się zapisać jej w pęku kluczy. Po zamknięciu aplikacji może być potrzebne logowanie.")
  }
  fun login(email:String,password:String) {
   if(email.isBlank() || password.isBlank()) { mutable.value=mutable.value.copy(error="Wpisz e-mail i hasło.");return }
-  job?.cancel();val remember=mutable.value.remember
+  messages.clear();job?.cancel();val remember=mutable.value.remember
   job=scope.launch {
    mutable.value=ScreenState(busy=true,remember=remember)
    val helper=PrometheusLoginHelper(autoAcceptConsent=false)
@@ -62,7 +63,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
      if(tokens.isEmpty()) continue
      val c=withContext(Dispatchers.Default) { RsaCredential.createNew(deviceOs="iOS",deviceModel="iPhone") }
      val api=SzpontHebeCeApi(c,client);api.registerByJwt(tokens,tenant)
-     students+=api.getAccounts().map { Student(it,api,c) }
+     students+=api.getAccounts().map { Student(it,api,c,tenant,result.cookies.map(StoredCookie::from)) }
     }
     ensureActive()
     mutable.value=ScreenState(students=students,remember=remember,error=if(students.isEmpty()) "Nie znaleziono uczniów." else null)
@@ -75,6 +76,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
  fun select(index:Int) {
   val student=mutable.value.students.getOrNull(index) ?: return
   job?.cancel()
+  messages.use(student)
   val period=student.account.periods?.firstOrNull { it.current==true } ?: student.account.periods?.lastOrNull()
   mutable.value=mutable.value.copy(selected=index,periodId=period?.id,section=Section.GRADES,grades=emptyList(),rows=emptyList(),error=null,busy=false)
   save();refresh()
@@ -85,7 +87,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
   job?.cancel();mutable.value=mutable.value.copy(periodId=id,grades=emptyList(),rows=emptyList());refresh()
  }
  fun section(section:Section) {
-  job?.cancel()
+  job?.cancel();messages.cancel()
   val today=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
   val from=if(section==Section.SCHEDULE) today.minus(today.dayOfWeek.ordinal,DateTimeUnit.DAY) else today.minus(30,DateTimeUnit.DAY)
   val to=if(section==Section.SCHEDULE) from.plus(6,DateTimeUnit.DAY) else if(section==Section.PRESENCE) today else today.plus(60,DateTimeUnit.DAY)
@@ -106,6 +108,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
  fun refresh() {
   val before=mutable.value;val student=before.selected?.let { before.students.getOrNull(it) } ?: return
   job?.cancel()
+  if(before.section==Section.MESSAGES) { mutable.value=before.copy(busy=false);messages.refresh();return }
   job=scope.launch {
    mutable.value=before.copy(busy=true,grades=emptyList(),rows=emptyList(),error=null)
    try {
@@ -122,12 +125,12 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
      catch(e:Exception) { currentCoroutineContext().ensureActive();mutable.value=mutable.value.copy(busy=false,error=safeError(e,before.section.label)) }
   }
  }
- fun back() { job?.cancel();mutable.value=mutable.value.copy(selected=null,periodId=null,grades=emptyList(),rows=emptyList(),error=null,busy=false);save() }
+ fun back() { messages.clear();job?.cancel();mutable.value=mutable.value.copy(selected=null,periodId=null,grades=emptyList(),rows=emptyList(),error=null,busy=false);save() }
  fun logout() {
   if(!vault.clear()) { mutable.value=mutable.value.copy(notice="Nie udało się usunąć zapisanej sesji. Spróbuj ponownie po odblokowaniu telefonu.");return }
-  job?.cancel();mutable.value=ScreenState()
+  messages.clear();job?.cancel();mutable.value=ScreenState()
  }
- fun close() { job?.cancel();client.close() }
+ fun close() { messages.clear();job?.cancel();client.close() }
 }
 internal suspend fun <T> collectPages(pageSize: Int, id: (T)->Int, fetch: suspend(Int)->List<T>):List<T> {
  val collected=linkedMapOf<Int,T>();var last=Int.MIN_VALUE

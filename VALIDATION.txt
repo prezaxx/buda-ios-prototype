@@ -1,3 +1,17 @@
+Buda iOS 0.3.0 (build 4)
+Common Kotlin/JVM compilation: PASS
+Common tests: 27 PASS (18 previous + 9 messages tests)
+iOS native compilation and IPA packaging: PENDING
+
+Messages: inbox, explicit mailbox selection, 50-row pagination, full text,
+HTTPS attachment links. No send/read-status mutation calls in Buda UI.
+Tests cover JSON variations, mismatched message identity, repeated pages,
+HTML stripping, missing attachment URLs, unsafe links, cookies and mailbox IDs.
+No live school credentials used. SSO, message access and attachment downloads
+must still be confirmed on the user's account/device. No push implementation.
+Previous session snapshots are compatible; messages need one new login after 0.2.
+
+Previous release evidence:
 Buda iOS 0.2.0 (build 3)
 Common Kotlin/JVM compilation: PASS
 Common tests: 18 PASS

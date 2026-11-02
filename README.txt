@@ -1,4 +1,4 @@
-BUDA iOS 0.2.0
+BUDA iOS 0.3.0
 
 Zakres: logowanie eduVULCAN, wybor ucznia i semestru, oceny,
 plan z zastepstwami i dodatkowymi zajeciami, frekwencja, sprawdziany,
@@ -6,7 +6,7 @@ zadania domowe, uwagi, ogloszenia, srednie szkoly oraz oceny przewidywane
 (Entry_1) i koncowe (Entry_2). Inny wpis klasyfikacji jest opisany osobno.
 Zalaczniki HTTPS otwieraja sie w przegladarce. Ta wersja tylko odczytuje dane:
 nie wysyla rozwiazan zadan, usprawiedliwien ani wiadomosci.
-Brak wiadomosci i push. To jeszcze nie pelny odpowiednik wszystkich funkcji Etny.
+Brak push. To jeszcze nie pelny odpowiednik wszystkich funkcji Etny.
 
 Plan domyslnie obejmuje biezacy tydzien (strzalki zmieniaja tydzien).
 Frekwencja: ostatnie 30 dni. Sprawdziany/zadania: 30 dni wstecz i 60 do przodu.
@@ -15,7 +15,7 @@ Wpisy sa pobierane stronicami. Blad formatu lub uprawnien jest wyswietlany,
 a nie zastepowany informacja o pustej liscie. Czesc planu/podsumowania moze
 byc dostepna mimo bledu drugiej czesci; komunikat opisuje ten przypadek.
 
-Zapamietaj sesje: klucz urzadzenia i konta uczniow w iOS Keychain,
+Zapamietaj sesje: klucz urzadzenia, konta uczniow i sesja wiadomosci w iOS Keychain,
 WhenUnlockedThisDeviceOnly. Haslo nie jest zapisywane. Dane nie sa
 synchronizowane do iCloud ani wysylane na wlasny serwer Budy.
 Wyloguj usuwa zapis. Sesja moze wygasnac po stronie szkoly.
@@ -32,3 +32,15 @@ To osobny klient, nie przekonwertowane etna.apk ani oficjalny klient VULCAN.
 Uzytkownik potwierdzil dzialanie wersji 0.2 na swoim koncie i urzadzeniu.
 Nie jest to niezalezny test kazdej funkcji. Nie gwarantujemy zgodnosci
 z kazda szkola ani dostepnosci wszystkich danych w danym planie konta.
+Nowe w 0.3: skrzynki wiadomosci, odebrane (po 50), pelna tresc i zalaczniki.
+Wybierz skrzynke jawnie; nazwa ucznia nie sluzy do zgadywania skrzynki.
+Otwarcie wiadomosci nie oznacza jej jako przeczytanej na serwerze.
+Brak wysylania odpowiedzi. HTML wyswietlany jako tekst, bez skryptow/obrazow.
+Zalaczniki otwierane tylko przez HTTPS. Brak linku oznacza koniecznosc
+otwarcia zalacznika w portalu; nie zgadujemy adresu na podstawie ID.
+Przegladarka moze wymagac osobnego logowania do portalu.
+Po aktualizacji z 0.2 wyloguj sie i zaloguj ponownie, aby uzyskac sesje
+wiadomosci. Haslo nadal nie jest zapisywane. Sesja wiadomosci moze wygasnac
+niezaleznie od ocen. Blad wiadomosci nie usuwa konta ucznia.
+Odczyt wiadomosci wymaga uprawnien przyznanych kontu przez eduVULCAN.
+Wersja 0.3 wymaga jeszcze sprawdzenia wiadomosci na rzeczywistym koncie.

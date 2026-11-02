@@ -8,7 +8,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
 enum class Section(val label:String,val dated:Boolean=false) {
- GRADES("Oceny"), SCHEDULE("Plan lekcji",true), PRESENCE("Frekwencja",true),
+ MESSAGES("Wiadomości"), GRADES("Oceny"), SCHEDULE("Plan lekcji",true), PRESENCE("Frekwencja",true),
  EXAMS("Sprawdziany",true), HOMEWORK("Zadania",true), NOTES("Uwagi"),
  ANNOUNCEMENTS("Ogłoszenia"), SUMMARY("Średnie i końcowe")
 }
@@ -59,7 +59,7 @@ internal fun mapDiaryRow(section:Section,row:JsonObject,source:String):DiaryRow 
  Section.ANNOUNCEMENTS -> DiaryRow(key,row.text("Title").ifBlank { "Ogłoszenie" },details(content,author),row.text("From"),links=attachments(row))
  Section.SUMMARY -> if(source.contains("average")) DiaryRow(key,subject,details("Średnia: "+row.text("Average").ifBlank { "nie podano" },row.text("Points").let { if(it.isBlank()) "" else "Punkty: $it" }),badge="Średnia szkoły")
  else DiaryRow(key,subject,details("Przewidywana: "+row.text("Entry_1").ifBlank { "nie podano" },"Końcowa: "+row.text("Entry_2").ifBlank { "nie podano" },row.text("Entry_3").let { if(it.isBlank()) "" else "Dodatkowy wpis szkoły: $it" }),badge="Klasyfikacja")
- Section.GRADES -> throw DiaryFormatException()
+ Section.GRADES, Section.MESSAGES -> throw DiaryFormatException()
  }
 }
 internal suspend fun fetchDiary(api:SzpontHebeCeApi,account:Account,section:Section,period:Int?,from:String,to:String):DiaryResult {

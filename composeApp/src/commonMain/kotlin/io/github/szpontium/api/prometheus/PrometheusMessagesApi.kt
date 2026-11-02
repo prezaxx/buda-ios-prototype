@@ -53,6 +53,7 @@ class PrometheusMessagesApi(
 
     private val httpClient = HttpClient {
         followRedirects = true
+        expectSuccess = true
 
         install(HttpTimeout) {
             requestTimeoutMillis = 60000
@@ -89,13 +90,13 @@ class PrometheusMessagesApi(
             }
         }
 
-        // Load initial cookies across all EduVulcan domains
+        require(tenant.matches(Regex("[a-zA-Z0-9_-]+")))
+        // Restore each cookie only within its original domain.
         currentCookies.forEach { cookie ->
             val domain = cookie.domain?.removePrefix(".") ?: "eduvulcan.pl"
+            require(domain == "eduvulcan.pl" || domain.endsWith(".eduvulcan.pl") || domain == "dziennik-logowanie.vulcan.net.pl")
             cookieStorage.addCookie(Url("https://$domain"), cookie)
-            cookieStorage.addCookie(Url("https://eduvulcan.pl"), cookie)
-            cookieStorage.addCookie(Url("https://dziennik-logowanie.vulcan.net.pl"), cookie)
-            cookieStorage.addCookie(Url("https://wiadomosci.eduvulcan.pl"), cookie)
+
         }
 
         val prometheusEncoded = UrlEncoderUtil.encode("https://eduvulcan.pl")
@@ -112,19 +113,20 @@ class PrometheusMessagesApi(
 
         // Fetch tokens from App
         val appScript = Ksoup.parse(httpClient.get("$messagesBaseUrl/$tenant/App").bodyAsText())
-            .select("script").firstOrNull()?.html() ?: ""
+            .select("script").joinToString("\n") { it.html() }
 
         antiForgeryToken = Regex("antiForgeryToken: '(.*?)'").find(appScript)?.groupValues?.get(1) ?: ""
         appGuid = Regex("appGuid: '(.*?)'").find(appScript)?.groupValues?.get(1) ?: ""
 
+        check(antiForgeryToken.isNotBlank() && appGuid.isNotBlank()) { "MessagesSessionExpired" }
         isInitialized = true
     }
 
     private suspend fun authorizePrometheus(url: String) {
         val response1 = httpClient.get(url)
-        val document = Ksoup.parse(response1.bodyAsText())
+        val document = Ksoup.parse(response1.bodyAsText(), response1.call.request.url.toString())
         val res1 = findAndSubmitForm(document) ?: return
-        val doc2 = Ksoup.parse(res1.bodyAsText())
+        val doc2 = Ksoup.parse(res1.bodyAsText(), res1.call.request.url.toString())
         if (doc2.forms().isNotEmpty()) {
             findAndSubmitForm(doc2)
         }
@@ -132,7 +134,9 @@ class PrometheusMessagesApi(
 
     private suspend fun findAndSubmitForm(document: Document): HttpResponse? {
         val form = document.forms().firstOrNull() ?: return null
-        val action = form.attr("action").ifBlank { return null }
+        val action = form.absUrl("action").ifBlank { return null }
+        val target = Url(action)
+        require(target.protocol == URLProtocol.HTTPS && target.host in setOf("eduvulcan.pl", "uczen.eduvulcan.pl", "wiadomosci.eduvulcan.pl", "dziennik-logowanie.vulcan.net.pl"))
         val fields = form.children().select("input[type=\"hidden\"]")
             .associate { it.attr("name") to listOf(it.value()) }
 
@@ -140,6 +144,20 @@ class PrometheusMessagesApi(
             url = action,
             formParameters = parametersOf(fields)
         )
+    }
+
+    fun close() { httpClient.close() }
+
+    suspend fun readPayload(endpoint:String,query:Map<String,String> = emptyMap()):kotlinx.serialization.json.JsonElement {
+        require(endpoint in setOf("Skrzynki","OdebraneSkrzynka","WiadomoscSzczegoly"))
+        initialize()
+        val response=httpClient.get("$messagesBaseUrl/$tenant/api/$endpoint") {
+            query.forEach { (name,value) -> parameter(name,value) }
+            header("X-V-AppGuid", appGuid)
+            header("X-V-RequestVerificationToken", antiForgeryToken)
+            contentType(ContentType.Application.Json)
+        }
+        return json.parseToJsonElement(response.bodyAsText())
     }
 
     suspend fun getMailboxes(): List<PrometheusMailbox> {
