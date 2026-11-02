@@ -1,0 +1,36 @@
+name: Build IPA for AltStore
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build unsigned device application
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          xcodebuild -version
+          ./gradlew :composeApp:jvmTest --no-daemon
+          xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' build
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          test -d build/ios/Build/Products/Release-iphoneos/BudaIOS.app
+          mkdir -p build/package/Payload
+          ditto build/ios/Build/Products/Release-iphoneos/BudaIOS.app build/package/Payload/BudaIOS.app
+          cd build/package
+          /usr/bin/zip -r -y ../Buda-iOS-0.1-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Buda-iOS-AltStore
+          path: build/Buda-iOS-0.1-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7

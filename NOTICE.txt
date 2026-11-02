@@ -1,0 +1,6 @@
+Buda iOS prototype 0.1
+API and Xcode host adapted from the local checkout of
+https://github.com/szponciciel04/DzienniczekSzpontniczek (MIT).
+See LICENSE-UPSTREAM. Existing package names retained for attribution.
+Not an Etna APK conversion, not an official VULCAN application.
+New UI and session controller: Buda prototype.
