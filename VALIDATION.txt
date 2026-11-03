@@ -1,6 +1,10 @@
 Buda iOS 0.6.0 (build 7)
 Common Kotlin/JVM compilation: PASS; tests: 55 PASS
-Native iOS build: PENDING
+Native iOS build and IPA packaging: PASS
+Build: https://github.com/prezaxx/buda-ios-prototype/actions/runs/41633410890
+Application source commit: fc6ab0a
+IPA integrity, bundle identifier, version and executable: PASS
+IPA SHA256: 9e21f942ecb045588324750c7816a7a69feb073e6ff4db0c07d144dfcd8b42bb
 
 New: Start dashboard, grouped/collapsible daily schedule, today/day filters,
 structured lesson times/current status, grouped grades and grade details.
