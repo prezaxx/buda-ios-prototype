@@ -1,6 +1,4 @@
 package pl.buda.ios
-import kotlinx.datetime.*
-import kotlin.time.Clock
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
@@ -28,7 +26,7 @@ import androidx.compose.ui.unit.dp
     Surface(Modifier.fillMaxWidth().padding(top=8.dp),shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.primaryContainer) {
      Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),horizontalArrangement=Arrangement.SpaceBetween) {
       Column { Text("Buda",style=MaterialTheme.typography.headlineMedium);Text("Twój szkolny dzień",style=MaterialTheme.typography.labelMedium) }
-      Text("0.5",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
+      Text("0.6",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
      }
     }
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -92,44 +90,25 @@ import androidx.compose.ui.unit.dp
       }
      }
      Row { TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Odśwież") };TextButton(onClick={logout=true}) { Text("Wyloguj") } }
-     if(state.section==Section.MESSAGES) {
+     if(state.section==Section.HOME) {
+      DashboardPane(state,Modifier.weight(1f),onSection={model.section(it)})
+     } else if(state.section==Section.SCHEDULE) {
+      key(state.selected) { SchedulePane(state,Modifier.weight(1f),onCurrentWeek={model.section(Section.SCHEDULE)}) }
+     } else if(state.section==Section.GRADES) {
+      key(state.selected,state.periodId) { GradesPane(state,Modifier.weight(1f)) }
+     } else if(state.section==Section.MESSAGES) {
       MessagesPane(model.messages,Modifier.weight(1f))
      } else {
      var query by remember(state.section,state.selected) { mutableStateOf("") }
      OutlinedTextField(query,{query=it},label={Text("Szukaj w pobranych wpisach")},singleLine=true,modifier=Modifier.fillMaxWidth(),trailingIcon={if(query.isNotEmpty()) TextButton(onClick={query=""}) { Text("Wyczyść") }})
-     val shownGrades=state.grades.filter { matchesSearch(query,it.subject,it.description,it.comment,it.content) }
      val shownRows=state.rows.filter { matchesSearch(query,it.title,it.detail,it.badge,it.date) }
-     val today=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
      val uri=LocalUriHandler.current
      var linkError by remember(state.section,state.selected) { mutableStateOf(false) }
      LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=20.dp)) {
       state.error?.let { message -> item { Text(message,color=MaterialTheme.colorScheme.error) } }
       if(linkError) item { Text("Nie udało się otworzyć załącznika.",color=MaterialTheme.colorScheme.error) }
-      if(state.section!=Section.SCHEDULE && !state.busy && state.error==null && shownGrades.isEmpty() && shownRows.isEmpty()) item { Text(if(query.isBlank()) "Brak wpisów w wybranym zakresie." else "Brak wyników wyszukiwania.") }
-      if(state.section==Section.GRADES) items(shownGrades,key={it.id}) { grade ->
-       Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-        Text(grade.subject,style=MaterialTheme.typography.titleMedium);Text(grade.content,style=MaterialTheme.typography.headlineMedium)
-        Text(grade.description);if(grade.comment.isNotBlank()) Text(grade.comment);Text(grade.createdAt.take(10),style=MaterialTheme.typography.bodySmall)
-       } }
-      } else if(state.section==Section.SCHEDULE) {
-       val days=scheduleDays(shownRows,state.from,state.to)
-       days.forEach { day ->
-        item(key="day:${day.date}") {
-         Surface(Modifier.fillMaxWidth().padding(top=10.dp),shape=MaterialTheme.shapes.medium,color=if(day.date==today) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
-          Row(Modifier.padding(14.dp),horizontalArrangement=Arrangement.SpaceBetween) {
-           Text(dayTitle(day.date),style=MaterialTheme.typography.titleSmall)
-           if(day.date==today) Text("DZISIAJ",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
-          }
-         }
-        }
-        items(day.rows,key={it.key}) { row -> DiaryEntryCard(row) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } } }
-        if(day.rows.isEmpty() && !state.busy && state.error==null) item(key="empty:${day.date}") { Text(if(query.isBlank()) "Brak zajęć w tym dniu." else "Brak pasujących zajęć.",Modifier.padding(horizontal=14.dp),style=MaterialTheme.typography.bodySmall) }
-       }
-       val dates=days.map { it.date.toString() }.toSet()
-       val other=shownRows.filter { it.date.take(10) !in dates }
-       if(other.isNotEmpty()) item { Text("Pozostałe wpisy planu",style=MaterialTheme.typography.titleSmall) }
-       items(other,key={it.key}) { row -> DiaryEntryCard(row) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } } }
-      } else items(shownRows,key={it.key}) { row ->
+      if(!state.busy && state.error==null && shownRows.isEmpty()) item { Text(if(query.isBlank()) "Brak wpisów w wybranym zakresie." else "Brak wyników wyszukiwania.") }
+      items(shownRows,key={it.key}) { row ->
        DiaryEntryCard(row) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } }
       }
      }
@@ -140,7 +119,7 @@ import androidx.compose.ui.unit.dp
  }
 }
 
-@Composable private fun DiaryEntryCard(row:DiaryRow,open:(DiaryLink)->Unit) {
+@Composable internal fun DiaryEntryCard(row:DiaryRow,open:(DiaryLink)->Unit) {
  Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
   Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
    if(row.badge.isNotBlank()) Text(row.badge,color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelLarge)

@@ -1,3 +1,16 @@
+Buda iOS 0.6.0 (build 7)
+Common Kotlin/JVM compilation: PASS; tests: 55 PASS
+Native iOS build: PENDING
+
+New: Start dashboard, grouped/collapsible daily schedule, today/day filters,
+structured lesson times/current status, grouped grades and grade details.
+Tests cover inclusive date ranges, partial dashboard failures, cancellation,
+lesson time boundaries/cancellations/missing hours and grade grouping.
+Existing substitution tests also assert structured room/time/cancelled fields.
+User reported all of 0.5 works. New 0.6 live data/UI not independently checked
+on an iPhone. No offline storage or push notification claim.
+
+Previous release evidence:
 Buda iOS 0.5.0 (build 6)
 Common Kotlin/JVM compilation: PASS; tests: 48 PASS
 Native iOS build and IPA packaging: PASS

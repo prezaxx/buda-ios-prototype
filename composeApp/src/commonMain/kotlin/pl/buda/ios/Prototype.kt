@@ -19,8 +19,8 @@ data class Student(val account:Account,val api:SzpontHebeCeApi,val credential:Rs
 data class ScreenState(
  val busy:Boolean=false,val students:List<Student> = emptyList(),val selected:Int?=null,
  val periodId:Int?=null,val grades:List<GradeRow> = emptyList(),val error:String?=null,
- val section:Section=Section.GRADES,val rows:List<DiaryRow> = emptyList(),
- val from:String="",val to:String="",val remember:Boolean=true,val notice:String?=null
+ val section:Section=Section.HOME,val rows:List<DiaryRow> = emptyList(),
+ val dashboard:DashboardData?=null,val from:String="",val to:String="",val remember:Boolean=true,val notice:String?=null
 )
 class Prototype(private val scope:CoroutineScope,private val vault:SessionVault) {
  private val client=HttpClient { install(HttpTimeout) { requestTimeoutMillis=45000 } }
@@ -78,18 +78,16 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
    finally { helper.close() }
   }
  }
- fun select(index:Int) {
+ fun select(index:Int,target:Section=Section.HOME) {
   val student=mutable.value.students.getOrNull(index) ?: return
   job?.cancel()
   messages.use(student)
   val period=student.account.periods?.firstOrNull { it.current==true } ?: student.account.periods?.lastOrNull()
-  mutable.value=mutable.value.copy(selected=index,periodId=period?.id,section=Section.GRADES,grades=emptyList(),rows=emptyList(),error=null,busy=false)
+  mutable.value=mutable.value.copy(selected=index,periodId=period?.id,section=target,dashboard=null,grades=emptyList(),rows=emptyList(),error=null,busy=false)
   save();refresh()
  }
  fun switchStudent(index:Int) {
-  val section=mutable.value.section
-  select(index)
-  if(section!=Section.GRADES) section(section)
+  select(index,mutable.value.section)
  }
  fun period(id:Int) {
   val account=mutable.value.selected?.let { mutable.value.students[it].account } ?: return
@@ -120,9 +118,13 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
   job?.cancel()
   if(before.section==Section.MESSAGES) { mutable.value=before.copy(busy=false);messages.refresh();return }
   job=scope.launch {
-   mutable.value=before.copy(busy=true,grades=emptyList(),rows=emptyList(),error=null)
+   mutable.value=before.copy(busy=true,dashboard=null,grades=emptyList(),rows=emptyList(),error=null)
    try {
-    if(before.section==Section.GRADES) {
+    if(before.section==Section.HOME) {
+     val today=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+     val data=loadDashboard(today) { section,from,to -> fetchDiary(student.api,student.account,section,before.periodId,from,to) }
+     ensureActive();mutable.value=mutable.value.copy(busy=false,dashboard=data)
+    } else if(before.section==Section.GRADES) {
      val period=before.periodId
      if(period==null) { mutable.value=mutable.value.copy(busy=false,error="Konto nie podało okresu oceniania.");return@launch }
      val grades=loadPages { last -> parseGrades(student.api.getGradePayload(student.account.unit.restUrl,student.account.unit.id,student.account.pupil.id,period,lastId=last,pageSize=500),student.account.pupil.id) }

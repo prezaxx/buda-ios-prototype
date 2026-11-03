@@ -8,12 +8,13 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
 enum class Section(val label:String,val dated:Boolean=false) {
- MESSAGES("Wiadomości"), GRADES("Oceny"), SCHEDULE("Plan lekcji",true), PRESENCE("Frekwencja",true),
+ HOME("Start"), MESSAGES("Wiadomości"), GRADES("Oceny"), SCHEDULE("Plan lekcji",true), PRESENCE("Frekwencja",true),
  EXAMS("Sprawdziany",true), HOMEWORK("Zadania",true), NOTES("Uwagi"),
  ANNOUNCEMENTS("Ogłoszenia"), SUMMARY("Średnie i końcowe")
 }
 data class DiaryLink(val title:String,val url:String)
-data class DiaryRow(val key:String,val title:String,val detail:String,val date:String="",val badge:String="",val links:List<DiaryLink> = emptyList())
+data class LessonInfo(val start:String,val end:String,val room:String,val cancelled:Boolean)
+data class DiaryRow(val key:String,val title:String,val detail:String,val date:String="",val badge:String="",val links:List<DiaryLink> = emptyList(),val lesson:LessonInfo?=null)
 data class DiaryResult(val rows:List<DiaryRow>,val warning:String?=null)
 class DiaryFormatException:Exception("UnsupportedDiaryFormat")
 internal fun JsonObject.obj(key:String)=this[key] as? JsonObject
@@ -47,7 +48,7 @@ internal fun mapDiaryRow(section:Section,row:JsonObject,source:String):DiaryRow 
   val room=if(sub?.flag("NoRoom")==true) "" else effective("Room")?.text("Code").orEmpty()
   val note=sub?.let { details(it.text("PupilNote"),it.text("Reason"),it.text("Description")) }.orEmpty()
   val original=if(sub!=null) details(row.text("DateAt"),row.obj("TimeSlot")?.text("Start").orEmpty(),row.obj("Subject")?.text("Name").orEmpty()) else ""
-  DiaryRow(key,title,details(time,employee(effective("TeacherPrimary") ?: effective("Teacher")),if(room.isNotBlank()) "Sala: $room" else "",plain(note),plain(row.text("Event")),if(original.isNotBlank()) "Pierwotnie: $original" else ""),date,if(cancelled) "Odwołane" else if(sub!=null) "Zmiana / zastępstwo" else "")
+  DiaryRow(key,title,details(time,employee(effective("TeacherPrimary") ?: effective("Teacher")),if(room.isNotBlank()) "Sala: $room" else "",plain(note),plain(row.text("Event")),if(original.isNotBlank()) "Pierwotnie: $original" else ""),date,if(cancelled) "Odwołane" else if(sub!=null) "Zmiana / zastępstwo" else "",lesson=LessonInfo(slot?.text("Start").orEmpty(),slot?.text("End").orEmpty(),room,cancelled))
  }
  Section.PRESENCE -> {
   val type=row.obj("PresenceType");val slot=row.obj("TimeSlot")
@@ -59,7 +60,7 @@ internal fun mapDiaryRow(section:Section,row:JsonObject,source:String):DiaryRow 
  Section.ANNOUNCEMENTS -> DiaryRow(key,row.text("Title").ifBlank { "Ogłoszenie" },details(content,author),row.text("From"),links=attachments(row))
  Section.SUMMARY -> if(source.contains("average")) DiaryRow(key,subject,details("Średnia: "+row.text("Average").ifBlank { "nie podano" },row.text("Points").let { if(it.isBlank()) "" else "Punkty: $it" }),badge="Średnia szkoły")
  else DiaryRow(key,subject,details("Przewidywana: "+row.text("Entry_1").ifBlank { "nie podano" },"Końcowa: "+row.text("Entry_2").ifBlank { "nie podano" },row.text("Entry_3").let { if(it.isBlank()) "" else "Dodatkowy wpis szkoły: $it" }),badge="Klasyfikacja")
- Section.GRADES, Section.MESSAGES -> throw DiaryFormatException()
+ Section.HOME, Section.GRADES, Section.MESSAGES -> throw DiaryFormatException()
  }
 }
 internal suspend fun fetchDiary(api:SzpontHebeCeApi,account:Account,section:Section,period:Int?,from:String,to:String):DiaryResult {

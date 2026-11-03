@@ -7,11 +7,11 @@ class DiaryTest {
  private fun row(text:String)=Json.parseToJsonElement(text).jsonObject
  @Test fun substitutionUsesNewSubjectAndRoom() {
   val value=mapDiaryRow(Section.SCHEDULE,row("""{"Id":1,"DateAt":"2026-11-02","Subject":{"Name":"Math"},"Room":{"Code":"1"},"TimeSlot":{"Start":"08:00","End":"08:45"},"Substitution":{"Subject":{"Name":"Art"},"Room":{"Code":"2"},"DateAt":"2026-11-03","Change":{"Type":1}}}"""),"schedule")
-  assertEquals("Art",value.title);assertEquals("2026-11-03",value.date);assertTrue(value.detail.contains("2"));assertTrue(value.badge.isNotBlank())
+  assertEquals("2",value.lesson?.room);assertEquals("08:00",value.lesson?.start);assertEquals("Art",value.title);assertEquals("2026-11-03",value.date);assertTrue(value.detail.contains("2"));assertTrue(value.badge.isNotBlank())
  }
  @Test fun cancelledLessonRemainsVisible() {
   val value=mapDiaryRow(Section.SCHEDULE,row("""{"Id":1,"Substitution":{"ClassAbsence":true}}"""),"schedule")
-  assertEquals("Odwołane",value.badge)
+  assertEquals("Odwołane",value.badge);assertEquals(true,value.lesson?.cancelled)
  }
  @Test fun dangerousAttachmentProtocolsAreNotOpened() {
   val value=mapDiaryRow(Section.HOMEWORK,row("""{"Id":1,"Content":"<b>Read</b>","Attachments":[{"Name":"bad","Link":"javascript:alert(1)"},{"Name":"good","Link":"https://example.com/a"}]}"""),"homework")

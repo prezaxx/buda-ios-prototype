@@ -1,4 +1,4 @@
-BUDA iOS 0.5.0
+BUDA iOS 0.6.0
 
 Zakres: logowanie eduVULCAN, wybor ucznia i semestru, oceny,
 plan z zastepstwami i dodatkowymi zajeciami, frekwencja, sprawdziany,
@@ -71,3 +71,20 @@ Nowe w 0.5 (build 6):
   zaznaczenie tekstu, przewijane filtry i ponawianie pobierania przy bledzie.
 Uzytkownik potwierdzil pobieranie wiadomosci w 0.4. Nowe zachowanie 0.5
 wymaga jeszcze potwierdzenia na jego koncie. Wyslane zalezne od API/uprawnien.
+
+Nowe w 0.6 (build 7):
+- Ekran Start po wybraniu ucznia: dzisiejszy plan oraz zadania/sprawdziany
+  z terminem w najblizszych 7 dniach. Skroty do glownych funkcji.
+  Sekcje pobieraja sie niezaleznie; blad jednej nie ukrywa pozostalych.
+- Plan: zwijane grupy dni, wybor dnia lub Dzisiaj, biezacy tydzien,
+  godziny po lewej, wyszukiwanie, Rozwin/Zwin dni. Oznaczenie Teraz wynika
+  z planu i zegara telefonu; nie potwierdza faktycznego odbywania lekcji.
+  Odwolane zajecia i bledne godziny nie sa oznaczane jako trwajace.
+- Oceny: grupy przedmiotow lub chronologia; dotkniecie oceny otwiera
+  opis i komentarz z mozliwoscia zaznaczenia/kopiowania tekstu.
+  Nie wyliczamy srednich z ocen tekstowych ani nie zgadujemy wag.
+- Nowy pulpit i karty, systemowy tryb jasny/ciemny; stan wyboru dnia,
+  wyszukiwania i zwijania dotyczy biezacego widoku.
+Start pokazuje do 8 najblizszych wpisow na sekcje; pelna lista przez Wszystkie.
+Nie jest to tryb offline ani implementacja powiadomien push.
+Uzytkownik potwierdzil dzialanie 0.5. Nowe widoki wymagaja sprawdzenia na iPhonie.
