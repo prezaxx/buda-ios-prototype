@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
     Surface(Modifier.fillMaxWidth().padding(top=8.dp),shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.primaryContainer) {
      Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),horizontalArrangement=Arrangement.SpaceBetween) {
       Column { Text("Buda",style=MaterialTheme.typography.headlineMedium);Text("Twój szkolny dzień",style=MaterialTheme.typography.labelMedium) }
-      Text("0.4",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
+      Text("0.5",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
      }
     }
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -53,7 +53,17 @@ import androidx.compose.ui.unit.dp
      val student=state.students[state.selected!!]
      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
       Column(Modifier.weight(1f)) { Text(student.title,style=MaterialTheme.typography.titleMedium);Text(student.account.classDisplay.orEmpty(),style=MaterialTheme.typography.bodySmall) }
-      TextButton(onClick={model.back()}) { Text("Zmień ucznia") }
+      var pupils by remember { mutableStateOf(false) }
+      Box {
+       FilledTonalButton(onClick={pupils=true}) { Text("Zmień ucznia") }
+       DropdownMenu(pupils,{pupils=false}) {
+        state.students.forEachIndexed { index,item ->
+         DropdownMenuItem(text={Column { Text(item.title);Text(item.account.classDisplay.orEmpty()+" · "+item.school,style=MaterialTheme.typography.bodySmall) }},onClick={pupils=false;model.switchStudent(index)})
+        }
+        HorizontalDivider()
+        DropdownMenuItem(text={Text("Lista uczniów i ustawienia sesji")},onClick={pupils=false;model.back()})
+       }
+      }
      }
      Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
       Section.entries.forEach { section -> FilterChip(selected=state.section==section,onClick={model.section(section)},label={Text(section.label)}) }

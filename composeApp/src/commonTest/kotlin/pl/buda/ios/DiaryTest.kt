@@ -49,6 +49,13 @@ class SessionTest {
   assertEquals("PRIVATE",restored.students.single().credential.restore().privateKey)
   assertFalse(encoded.contains("password",true))
  }
+ @Test fun mailboxChoicesRemainSeparateAfterSessionRestore() {
+  val first=fixture().students.single().copy(mailboxKey="first-box")
+  val second=first.copy(account=first.account.copy(pupil=first.account.pupil.copy(id=8)),mailboxKey="second-box")
+  val stored=decodeSession(encodeSession(StoredSession(students=listOf(first,second))))
+  assertEquals("first-box",stored.students[0].mailboxKey);assertEquals("second-box",stored.students[1].mailboxKey)
+ }
+ @Test fun oldSessionHasNoForcedMailbox() { assertNull(decodeSession(encodeSession(fixture())).students.single().mailboxKey) }
  @Test fun invalidSelectedPupilIsRejected() {
   assertFailsWith<IllegalArgumentException> { decodeSession(encodeSession(fixture().copy(selected=8))) }
  }

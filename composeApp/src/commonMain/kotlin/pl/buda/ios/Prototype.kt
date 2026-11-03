@@ -12,7 +12,7 @@ import kotlinx.datetime.*
 import kotlinx.serialization.SerializationException
 import kotlin.time.Clock
 
-data class Student(val account:Account,val api:SzpontHebeCeApi,val credential:RsaCredential,val tenant:String?=null,val cookies:List<StoredCookie> = emptyList()) {
+data class Student(val account:Account,val api:SzpontHebeCeApi,val credential:RsaCredential,val tenant:String?=null,val cookies:List<StoredCookie> = emptyList(),val mailboxKey:String?=null) {
  val title get()="${account.pupil.firstName} ${account.pupil.surname}"
  val school get()=account.unit.displayName.ifBlank { account.unit.name }
 }
@@ -27,12 +27,17 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
  private val mutable=MutableStateFlow(ScreenState())
  val state=mutable.asStateFlow()
  private var job:Job?=null
- val messages=MessagesController(scope)
+ val messages=MessagesController(scope,onMailboxChosen={ source,key ->
+  mutable.value=mutable.value.copy(students=mutable.value.students.map {
+   if(it.credential.deviceId==source.credential.deviceId && it.account==source.account) it.copy(mailboxKey=key) else it
+  })
+  save()
+ })
  init {
   try {
    vault.read()?.let { value ->
     val stored=decodeSession(value)
-    val students=stored.students.map { item -> val c=item.credential.restore();Student(item.account,SzpontHebeCeApi(c,client),c,item.tenant,item.cookies) }
+    val students=stored.students.map { item -> val c=item.credential.restore();Student(item.account,SzpontHebeCeApi(c,client),c,item.tenant,item.cookies,item.mailboxKey) }
     mutable.value=ScreenState(students=students)
     stored.selected?.let { select(it) }
    }
@@ -46,7 +51,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
  private fun save() {
   val s=mutable.value
   if(!s.remember || s.students.isEmpty()) return
-  val value=encodeSession(StoredSession(students=s.students.map { StoredStudent(it.account,StoredCredential.from(it.credential),it.tenant,it.cookies) },selected=s.selected))
+  val value=encodeSession(StoredSession(students=s.students.map { StoredStudent(it.account,StoredCredential.from(it.credential),it.tenant,it.cookies,it.mailboxKey) },selected=s.selected))
   if(!vault.write(value)) mutable.value=s.copy(notice="Sesja działa, ale nie udało się zapisać jej w pęku kluczy. Po zamknięciu aplikacji może być potrzebne logowanie.")
  }
  fun login(email:String,password:String) {
@@ -80,6 +85,11 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
   val period=student.account.periods?.firstOrNull { it.current==true } ?: student.account.periods?.lastOrNull()
   mutable.value=mutable.value.copy(selected=index,periodId=period?.id,section=Section.GRADES,grades=emptyList(),rows=emptyList(),error=null,busy=false)
   save();refresh()
+ }
+ fun switchStudent(index:Int) {
+  val section=mutable.value.section
+  select(index)
+  if(section!=Section.GRADES) section(section)
  }
  fun period(id:Int) {
   val account=mutable.value.selected?.let { mutable.value.students[it].account } ?: return

@@ -139,7 +139,7 @@ class PrometheusMessagesApi(
     fun close() { httpClient.close() }
 
     suspend fun readPayload(endpoint:String,query:Map<String,String> = emptyMap()):kotlinx.serialization.json.JsonElement {
-        require(endpoint in setOf("Skrzynki","OdebraneSkrzynka","WiadomoscSzczegoly"))
+        require(endpoint in setOf("Skrzynki","OdebraneSkrzynka","WyslaneSkrzynka","WiadomoscSzczegoly"))
         initialize()
         val response=httpClient.get("$messagesBaseUrl/$tenant/api/$endpoint") {
             query.forEach { (name,value) -> parameter(name,value) }

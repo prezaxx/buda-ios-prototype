@@ -11,7 +11,8 @@ data class Mailbox(val key:String,val name:String)
 data class MailItem(val key:String,val id:Int,val title:String,val sender:String,val date:String,val read:Boolean,val attachments:Boolean)
 data class MailAttachment(val name:String,val url:String?)
 data class MailDetail(val key:String,val title:String,val sender:String,val recipients:String,val date:String,val text:String,val attachments:List<MailAttachment>)
-data class MailState(val busy:Boolean=false,val boxes:List<Mailbox> = emptyList(),val box:String?=null,val items:List<MailItem> = emptyList(),val detail:MailDetail?=null,val more:Boolean=false,val error:String?=null,val loaded:Boolean=false)
+enum class MailFolder(val label:String,val endpoint:String) { INBOX("Odebrane","OdebraneSkrzynka"), SENT("Wysłane","WyslaneSkrzynka") }
+data class MailState(val folder:MailFolder=MailFolder.INBOX,val busy:Boolean=false,val boxes:List<Mailbox> = emptyList(),val box:String?=null,val items:List<MailItem> = emptyList(),val detail:MailDetail?=null,val more:Boolean=false,val error:String?=null,val loaded:Boolean=false)
 class MessageFormatException:Exception("UnsupportedMessageFormat")
 private fun JsonElement.objectRows():List<JsonObject> = (this as? JsonArray ?: throw MessageFormatException()).map { it as? JsonObject ?: throw MessageFormatException() }
 private fun JsonObject.required(key:String)=text(key).ifBlank { throw MessageFormatException() }
@@ -47,7 +48,20 @@ internal fun mergeInbox(old:List<MailItem>,page:List<MailItem>,append:Boolean):L
  if(append && page.isNotEmpty() && page.none { next -> old.none { it.key==next.key } }) throw MessageFormatException()
  return ((if(append) old else emptyList())+page).distinctBy { it.key }
 }
-class MessagesController(private val scope:CoroutineScope) {
+internal fun resolveMailbox(boxes:List<Mailbox>,savedKey:String?,accountKey:String?,accountName:String?):String? {
+ fun key(value:String?)=value?.trim()?.removePrefix("{")?.removeSuffix("}")?.lowercase().orEmpty()
+ fun findKey(value:String?):String? {
+  val expected=key(value)
+  return if(expected.isEmpty()) null else boxes.singleOrNull { key(it.key)==expected }?.key
+ }
+ findKey(savedKey)?.let { return it }
+ findKey(accountKey)?.let { return it }
+ // Exact mailbox metadata only, never a pupil-name substring or first mailbox.
+ fun name(value:String?)=value.orEmpty().trim().lowercase().replace(Regex("\\s+")," ")
+ val expected=name(accountName)
+ return if(expected.isBlank()) null else boxes.singleOrNull { name(it.name)==expected }?.key
+}
+class MessagesController(private val scope:CoroutineScope,private val onMailboxChosen:(Student,String)->Unit={ _,_ -> }) {
  private val mutable=MutableStateFlow(MailState())
  val state=mutable.asStateFlow()
  private var student:Student?=null
@@ -84,26 +98,35 @@ class MessagesController(private val scope:CoroutineScope) {
   if(box!=null) { inbox(box,false);return }
   request {
    val boxes=parseMailboxes(client().readPayload("Skrzynki"))
-   ensureActive();mutable.value=MailState(busy=true,boxes=boxes,loaded=true)
+   ensureActive()
+   val key=resolveMailbox(boxes,s.mailboxKey,s.account.messageBox?.globalKey,s.account.messageBox?.name)
+   mutable.value=MailState(busy=true,boxes=boxes,loaded=true,box=key)
+   if(key!=null) loadInbox(key,false)
   }
  }
  fun choose(key:String) {
   if(mutable.value.boxes.none { it.key==key }) return
+  student?.let { onMailboxChosen(it,key);student=it.copy(mailboxKey=key) }
   cancel();mutable.value=mutable.value.copy(box=key,items=emptyList(),detail=null,more=false,loaded=false,error=null)
   inbox(key,false)
+ }
+ fun folder(value:MailFolder) {
+  val box=mutable.value.box ?: return
+  if(value==mutable.value.folder) return
+  cancel();mutable.value=mutable.value.copy(folder=value,items=emptyList(),detail=null,more=false,loaded=false,error=null)
+  inbox(box,false)
  }
  fun chooseAnother() { cancel();mutable.value=mutable.value.copy(box=null,items=emptyList(),detail=null,more=false,error=null) }
  fun backToInbox() { cancel();mutable.value=mutable.value.copy(detail=null,error=null) }
  fun more() { if(!mutable.value.busy && mutable.value.more) mutable.value.box?.let { inbox(it,true) } }
- private fun inbox(box:String,append:Boolean) {
+ private fun inbox(box:String,append:Boolean) { request { loadInbox(box,append) } }
+ private suspend fun loadInbox(box:String,append:Boolean) {
   val before=mutable.value
   val cursor=if(append) before.items.lastOrNull()?.id ?: return else 0
-  request {
-   val page=parseInbox(client().readPayload("OdebraneSkrzynka",mapOf("globalKeySkrzynka" to box,"idLastWiadomosc" to cursor.toString(),"pageSize" to "50")))
+   val page=parseInbox(client().readPayload(before.folder.endpoint,mapOf("globalKeySkrzynka" to box,"idLastWiadomosc" to cursor.toString(),"pageSize" to "50")))
    val items=mergeInbox(before.items,page,append)
    if(append && page.size>=50 && page.last().id==cursor) throw MessageFormatException()
-   ensureActive();mutable.value=before.copy(busy=true,items=items,detail=null,more=page.size>=50,loaded=true,error=null)
-  }
+   currentCoroutineContext().ensureActive();mutable.value=before.copy(busy=true,items=items,detail=null,more=page.size>=50,loaded=true,error=null)
  }
  fun open(key:String) {
   if(mutable.value.items.none { it.key==key }) return

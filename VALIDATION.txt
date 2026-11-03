@@ -1,3 +1,16 @@
+Buda iOS 0.5.0 (build 6)
+Common Kotlin/JVM compilation: PASS; tests: 48 PASS
+Native iOS build: PENDING
+
+Mailbox association: saved per-student choice, exact account mailbox key,
+unique exact account mailbox name; no first-box/pupil-name guessing.
+Tests cover siblings' distinct keys, explicit override, removed key fallback,
+ambiguous metadata, missing metadata and independent persisted choices.
+0.4 message retrieval confirmed by user; not independently observed.
+0.5 automatic selection and sent folder still need live account verification.
+No independent iPhone visual check. No sending or read-status mutation.
+
+Previous release evidence:
 Buda iOS 0.4.0 (build 5)
 Common Kotlin/JVM compilation: PASS; tests: 39 PASS
 Native iOS build and IPA packaging: PASS

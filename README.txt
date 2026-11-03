@@ -1,4 +1,4 @@
-BUDA iOS 0.4.0
+BUDA iOS 0.5.0
 
 Zakres: logowanie eduVULCAN, wybor ucznia i semestru, oceny,
 plan z zastepstwami i dodatkowymi zajeciami, frekwencja, sprawdziany,
@@ -57,3 +57,17 @@ Nowe w 0.4 (build 5):
 - Filtr nieprzeczytanych wiadomosci; dotyczy tylko juz pobranych stron.
 Ponowne logowanie nie jest wymagane przez sama aktualizacje 0.3 -> 0.4.
 Sesja serwera moze jednak wygasnac. Odczyt na zywym koncie wymaga potwierdzenia.
+
+Nowe w 0.5 (build 6):
+- Automatyczna skrzynka ucznia: zapamietany wybor, identyfikator MessageBox
+  z konta, a nastepnie jednoznaczna pelna nazwa skrzynki z metadanych konta.
+  Brak zgadywania po fragmencie nazwiska lub pierwszej pozycji listy.
+- Jesli API nie daje jednoznacznego powiazania, wybierz skrzynke raz.
+  Wybor jest zapisany oddzielnie dla ucznia razem z sesja w Keychain
+  (gdy Zapamietaj sesje jest wlaczone), a nie wspolnie dla rodzenstwa.
+- Zmien ucznia: szybkie menu utrzymuje aktualna zakladke.
+- Odczyt folderu Wyslane, stronicowanie i wyszukiwanie; bez wysylania.
+- Nowe karty wiadomosci, naglowek szczegolow, kopiowanie tresci przez
+  zaznaczenie tekstu, przewijane filtry i ponawianie pobierania przy bledzie.
+Uzytkownik potwierdzil pobieranie wiadomosci w 0.4. Nowe zachowanie 0.5
+wymaga jeszcze potwierdzenia na jego koncie. Wyslane zalezne od API/uprawnien.
