@@ -1,6 +1,10 @@
 Buda iOS 0.5.0 (build 6)
 Common Kotlin/JVM compilation: PASS; tests: 48 PASS
-Native iOS build: PENDING
+Native iOS build and IPA packaging: PASS
+Build: https://github.com/prezaxx/buda-ios-prototype/actions/runs/41601644993
+Application source commit: 931a182
+IPA integrity, bundle identifier, version and executable: PASS
+IPA SHA256: c581f98485ee4d2f44b22473bb96f1352d8a77a8e8c0f25d6b52ef8bacd4f3d0
 
 Mailbox association: saved per-student choice, exact account mailbox key,
 unique exact account mailbox name; no first-box/pupil-name guessing.
