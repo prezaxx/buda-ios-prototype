@@ -1,4 +1,6 @@
 package pl.buda.ios
+import kotlinx.datetime.*
+import kotlin.time.Clock
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
@@ -19,13 +21,15 @@ import androidx.compose.ui.unit.dp
  val state by model.state.collectAsState()
  var email by remember { mutableStateOf("") };var password by remember { mutableStateOf("") }
  var logout by remember { mutableStateOf(false) }
- MaterialTheme {
+ BudaTheme {
   if(logout) AlertDialog(onDismissRequest={logout=false},title={Text("Wylogować?")},text={Text("Usuniemy zapisaną sesję z tego iPhone’a.")},confirmButton={TextButton(onClick={logout=false;model.logout()}){Text("Wyloguj")}},dismissButton={TextButton(onClick={logout=false}){Text("Anuluj")}})
-  Surface(Modifier.fillMaxSize()) {
+  Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-     Text("Buda",style=MaterialTheme.typography.headlineLarge)
-     Text("0.3",style=MaterialTheme.typography.labelLarge)
+    Surface(Modifier.fillMaxWidth().padding(top=8.dp),shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.primaryContainer) {
+     Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),horizontalArrangement=Arrangement.SpaceBetween) {
+      Column { Text("Buda",style=MaterialTheme.typography.headlineMedium);Text("Twój szkolny dzień",style=MaterialTheme.typography.labelMedium) }
+      Text("0.4",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
+     }
     }
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.notice?.let { Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.tertiary) }
@@ -81,30 +85,59 @@ import androidx.compose.ui.unit.dp
      if(state.section==Section.MESSAGES) {
       MessagesPane(model.messages,Modifier.weight(1f))
      } else {
+     var query by remember(state.section,state.selected) { mutableStateOf("") }
+     OutlinedTextField(query,{query=it},label={Text("Szukaj w pobranych wpisach")},singleLine=true,modifier=Modifier.fillMaxWidth(),trailingIcon={if(query.isNotEmpty()) TextButton(onClick={query=""}) { Text("Wyczyść") }})
+     val shownGrades=state.grades.filter { matchesSearch(query,it.subject,it.description,it.comment,it.content) }
+     val shownRows=state.rows.filter { matchesSearch(query,it.title,it.detail,it.badge,it.date) }
+     val today=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
      val uri=LocalUriHandler.current
      var linkError by remember(state.section,state.selected) { mutableStateOf(false) }
      LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=20.dp)) {
       state.error?.let { message -> item { Text(message,color=MaterialTheme.colorScheme.error) } }
       if(linkError) item { Text("Nie udało się otworzyć załącznika.",color=MaterialTheme.colorScheme.error) }
-      if(!state.busy && state.error==null && state.grades.isEmpty() && state.rows.isEmpty()) item { Text("Brak wpisów w wybranym zakresie.") }
-      if(state.section==Section.GRADES) items(state.grades,key={it.id}) { grade ->
+      if(state.section!=Section.SCHEDULE && !state.busy && state.error==null && shownGrades.isEmpty() && shownRows.isEmpty()) item { Text(if(query.isBlank()) "Brak wpisów w wybranym zakresie." else "Brak wyników wyszukiwania.") }
+      if(state.section==Section.GRADES) items(shownGrades,key={it.id}) { grade ->
        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
         Text(grade.subject,style=MaterialTheme.typography.titleMedium);Text(grade.content,style=MaterialTheme.typography.headlineMedium)
         Text(grade.description);if(grade.comment.isNotBlank()) Text(grade.comment);Text(grade.createdAt.take(10),style=MaterialTheme.typography.bodySmall)
        } }
-      } else items(state.rows,key={it.key}) { row ->
-       Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-        if(row.badge.isNotBlank()) Text(row.badge,color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelLarge)
-        Text(row.title,style=MaterialTheme.typography.titleMedium)
-        if(row.date.isNotBlank()) Text(row.date.take(10),style=MaterialTheme.typography.labelMedium)
-        Text(row.detail)
-        row.links.forEach { link -> TextButton(onClick={try { uri.openUri(link.url) } catch(e:Exception) { linkError=true }}) { Text(link.title) } }
-       } }
+      } else if(state.section==Section.SCHEDULE) {
+       val days=scheduleDays(shownRows,state.from,state.to)
+       days.forEach { day ->
+        item(key="day:${day.date}") {
+         Surface(Modifier.fillMaxWidth().padding(top=10.dp),shape=MaterialTheme.shapes.medium,color=if(day.date==today) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
+          Row(Modifier.padding(14.dp),horizontalArrangement=Arrangement.SpaceBetween) {
+           Text(dayTitle(day.date),style=MaterialTheme.typography.titleSmall)
+           if(day.date==today) Text("DZISIAJ",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
+          }
+         }
+        }
+        items(day.rows,key={it.key}) { row -> DiaryEntryCard(row) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } } }
+        if(day.rows.isEmpty() && !state.busy && state.error==null) item(key="empty:${day.date}") { Text(if(query.isBlank()) "Brak zajęć w tym dniu." else "Brak pasujących zajęć.",Modifier.padding(horizontal=14.dp),style=MaterialTheme.typography.bodySmall) }
+       }
+       val dates=days.map { it.date.toString() }.toSet()
+       val other=shownRows.filter { it.date.take(10) !in dates }
+       if(other.isNotEmpty()) item { Text("Pozostałe wpisy planu",style=MaterialTheme.typography.titleSmall) }
+       items(other,key={it.key}) { row -> DiaryEntryCard(row) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } } }
+      } else items(shownRows,key={it.key}) { row ->
+       DiaryEntryCard(row) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } }
       }
      }
      }
     }
    }
+  }
+ }
+}
+
+@Composable private fun DiaryEntryCard(row:DiaryRow,open:(DiaryLink)->Unit) {
+ Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
+  Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+   if(row.badge.isNotBlank()) Text(row.badge,color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelLarge)
+   Text(row.title,style=MaterialTheme.typography.titleMedium)
+   if(row.date.isNotBlank()) Text(row.date.take(10),style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.secondary)
+   Text(row.detail)
+   row.links.forEach { link -> TextButton(onClick={open(link)}) { Text(link.title) } }
   }
  }
 }

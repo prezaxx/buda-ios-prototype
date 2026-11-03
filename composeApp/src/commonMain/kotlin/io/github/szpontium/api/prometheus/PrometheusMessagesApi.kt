@@ -52,8 +52,8 @@ class PrometheusMessagesApi(
     private val cookieStorage = AcceptAllCookiesStorage()
 
     private val httpClient = HttpClient {
-        followRedirects = true
-        expectSuccess = true
+        followRedirects = false
+        expectSuccess = false
 
         install(HttpTimeout) {
             requestTimeoutMillis = 60000
@@ -112,38 +112,28 @@ class PrometheusMessagesApi(
         authorizePrometheus(authorizeUrl)
 
         // Fetch tokens from App
-        val appScript = Ksoup.parse(httpClient.get("$messagesBaseUrl/$tenant/App").bodyAsText())
+        val appScript = Ksoup.parse(ssoRequest(httpClient,"$messagesBaseUrl/$tenant/App").bodyAsText())
             .select("script").joinToString("\n") { it.html() }
 
-        antiForgeryToken = Regex("antiForgeryToken: '(.*?)'").find(appScript)?.groupValues?.get(1) ?: ""
-        appGuid = Regex("appGuid: '(.*?)'").find(appScript)?.groupValues?.get(1) ?: ""
-
-        check(antiForgeryToken.isNotBlank() && appGuid.isNotBlank()) { "MessagesSessionExpired" }
+        antiForgeryToken = messagesScriptValue(appScript,"antiForgeryToken")
+        appGuid = messagesScriptValue(appScript,"appGuid")
+        if(antiForgeryToken.isBlank() || appGuid.isBlank()) throw MessagesAccessException("SSO_APP_TOKENS")
         isInitialized = true
     }
 
     private suspend fun authorizePrometheus(url: String) {
-        val response1 = httpClient.get(url)
-        val document = Ksoup.parse(response1.bodyAsText(), response1.call.request.url.toString())
-        val res1 = findAndSubmitForm(document) ?: return
-        val doc2 = Ksoup.parse(res1.bodyAsText(), res1.call.request.url.toString())
-        if (doc2.forms().isNotEmpty()) {
-            findAndSubmitForm(doc2)
+        var response=ssoRequest(httpClient,url)
+        repeat(8) {
+            val document=Ksoup.parse(response.bodyAsText(),response.call.request.url.toString())
+            val form=document.forms().firstOrNull() ?: return
+            if(form.select("input[type=password]").isNotEmpty()) throw MessagesAccessException("SSO_LOGIN_REQUIRED")
+            val action=form.absUrl("action").ifBlank { return }
+            val fields=form.select("input[type=hidden]").filter { it.attr("name").isNotBlank() }
+                .groupBy({ it.attr("name") },{ it.value() })
+            if(fields.isEmpty()) throw MessagesAccessException("SSO_FORM")
+            response=ssoRequest(httpClient,action,parametersOf(fields))
         }
-    }
-
-    private suspend fun findAndSubmitForm(document: Document): HttpResponse? {
-        val form = document.forms().firstOrNull() ?: return null
-        val action = form.absUrl("action").ifBlank { return null }
-        val target = Url(action)
-        require(target.protocol == URLProtocol.HTTPS && target.host in setOf("eduvulcan.pl", "uczen.eduvulcan.pl", "wiadomosci.eduvulcan.pl", "dziennik-logowanie.vulcan.net.pl"))
-        val fields = form.children().select("input[type=\"hidden\"]")
-            .associate { it.attr("name") to listOf(it.value()) }
-
-        return httpClient.submitForm(
-            url = action,
-            formParameters = parametersOf(fields)
-        )
+        throw MessagesAccessException("SSO_FORM_LIMIT")
     }
 
     fun close() { httpClient.close() }
@@ -157,7 +147,13 @@ class PrometheusMessagesApi(
             header("X-V-RequestVerificationToken", antiForgeryToken)
             contentType(ContentType.Application.Json)
         }
-        return json.parseToJsonElement(response.bodyAsText())
+        if(response.status.value !in 200..299) {
+            isInitialized=false
+            throw MessagesAccessException("API_"+endpoint+"_HTTP_"+response.status.value)
+        }
+        val body=response.bodyAsText()
+        if(body.trimStart().startsWith("<")) { isInitialized=false;throw MessagesAccessException("API_HTML_"+endpoint) }
+        return json.parseToJsonElement(body)
     }
 
     suspend fun getMailboxes(): List<PrometheusMailbox> {

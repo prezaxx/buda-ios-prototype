@@ -27,6 +27,6 @@ kotlin {
   }
   iosMain.dependencies { implementation(libs.ktor.darwin); implementation(libs.whyoleg.crypto.apple) }
   jvmMain.dependencies { implementation(libs.ktor.okhttp); implementation(libs.whyoleg.crypto.jdk) }
-  commonTest.dependencies { implementation(libs.kotlin.test); implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2") }
+  commonTest.dependencies { implementation("io.ktor:ktor-client-mock:3.4.1"); implementation(libs.kotlin.test); implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2") }
  }
 }

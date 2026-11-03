@@ -1,4 +1,4 @@
-BUDA iOS 0.3.0
+BUDA iOS 0.4.0
 
 Zakres: logowanie eduVULCAN, wybor ucznia i semestru, oceny,
 plan z zastepstwami i dodatkowymi zajeciami, frekwencja, sprawdziany,
@@ -44,3 +44,16 @@ wiadomosci. Haslo nadal nie jest zapisywane. Sesja wiadomosci moze wygasnac
 niezaleznie od ocen. Blad wiadomosci nie usuwa konta ucznia.
 Odczyt wiadomosci wymaga uprawnien przyznanych kontu przez eduVULCAN.
 Wersja 0.3 wymaga jeszcze sprawdzenia wiadomosci na rzeczywistym koncie.
+
+Nowe w 0.4 (build 5):
+- Poprawka logowania do wiadomosci: jawne POST -> 302/303 -> GET,
+  zachowanie formularza dla 307/308, wzgledne adresy i limit przekierowan.
+- Przekierowania/formularze tylko do jawnie dozwolonych hostow HTTPS.
+- Kody diagnostyczne bez URL, cookies, hasel i tresci odpowiedzi.
+- Plan lekcji wedlug dni, godziny w kolejnosci, wyroznienie DZISIAJ.
+  Brak lekcji jest pokazywany tylko bez bledu pobierania.
+- Nowa zielona paleta, zaokraglone karty, systemowy tryb jasny/ciemny.
+- Wyszukiwanie w pobranych ocenach/wpisach oraz temacie i nadawcy wiadomosci.
+- Filtr nieprzeczytanych wiadomosci; dotyczy tylko juz pobranych stron.
+Ponowne logowanie nie jest wymagane przez sama aktualizacje 0.3 -> 0.4.
+Sesja serwera moze jednak wygasnac. Odczyt na zywym koncie wymaga potwierdzenia.

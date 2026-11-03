@@ -1,3 +1,18 @@
+Buda iOS 0.4.0 (build 5)
+Common Kotlin/JVM compilation: PASS; tests: 39 PASS
+Native iOS build: PENDING
+
+Reported failure: RedirectResponseException after login to messages in 0.3.
+Identified default Ktor redirects are GET/HEAD-only; POST 302 was rejected.
+Regression tests exercise POST 302 -> GET + cookie, POST 307 preservation,
+relative redirect, rejected host/scheme/port/credentials, loop bound,
+safe HTTP errors, token parsing and old-client failure reproduction.
+Schedule tests cover day grouping, ordering, effective substitution date,
+empty days, Polish labels and search.
+No live account credentials or independent iPhone visual checks available.
+Messages still need user verification after this transport fix.
+
+Previous release evidence:
 Buda iOS 0.3.0 (build 4)
 Common Kotlin/JVM compilation: PASS
 Common tests: 27 PASS (18 previous + 9 messages tests)

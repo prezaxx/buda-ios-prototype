@@ -69,7 +69,9 @@ class MessagesController(private val scope:CoroutineScope) {
    catch(e:CancellationException) { throw e }
    catch(e:Exception) {
     ensureActive()
-    mutable.value=mutable.value.copy(busy=false,error="Nie udało się pobrać wiadomości (${e::class.simpleName}). Odśwież, a jeśli problem wraca, wyloguj się i zaloguj ponownie, aby odnowić sesję wiadomości. Oceny pozostają dostępne.")
+    val code=(e as? io.github.szpontium.api.prometheus.MessagesAccessException)?.code ?: e::class.simpleName.orEmpty()
+    api?.close();api=null
+    mutable.value=mutable.value.copy(busy=false,error="Nie udało się pobrać wiadomości. Kod: $code. Ponów pobieranie. Jeśli błąd wraca, podaj ten kod — nie zawiera danych logowania. Oceny pozostają dostępne.")
    }
   }
  }

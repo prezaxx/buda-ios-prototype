@@ -10,6 +10,9 @@ import androidx.compose.ui.unit.dp
 
 @Composable fun MessagesPane(model:MessagesController,modifier:Modifier=Modifier) {
  val state by model.state.collectAsState()
+ var query by remember(state.box) { mutableStateOf("") }
+ var unreadOnly by remember(state.box) { mutableStateOf(false) }
+ val visible=state.items.filter { (!unreadOnly || !it.read) && matchesSearch(query,it.title,it.sender,it.date) }
  val uri=LocalUriHandler.current
  var linkError by remember(state.detail?.key) { mutableStateOf(false) }
  Column(modifier,verticalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -20,6 +23,14 @@ import androidx.compose.ui.unit.dp
     if(state.detail!=null) TextButton(onClick={model.backToInbox()}) { Text("Do odebranych") }
     TextButton(onClick={model.chooseAnother()}) { Text("Wybierz skrzynkę") }
    }
+  }
+  if(state.box!=null && state.detail==null) {
+   OutlinedTextField(query,{query=it},label={Text("Temat lub nadawca")},singleLine=true,modifier=Modifier.fillMaxWidth(),trailingIcon={if(query.isNotEmpty()) TextButton(onClick={query=""}) { Text("Wyczyść") }})
+   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+    FilterChip(selected=!unreadOnly,onClick={unreadOnly=false},label={Text("Wszystkie")})
+    FilterChip(selected=unreadOnly,onClick={unreadOnly=true},label={Text("Nieprzeczytane")})
+   }
+   Text("Wyniki: ${visible.size} z ${state.items.size} pobranych",style=MaterialTheme.typography.labelSmall)
   }
   LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=20.dp)) {
    state.error?.let { item { Text(it,color=MaterialTheme.colorScheme.error) } }
@@ -44,7 +55,7 @@ import androidx.compose.ui.unit.dp
       TextButton(onClick={try { uri.openUri("https://eduvulcan.pl") } catch(e:Exception) { linkError=true }}) { Text("Otwórz eduVULCAN") }
      }
     } else {
-     items(state.items,key={it.key}) { mail ->
+     items(visible,key={it.key}) { mail ->
       OutlinedButton(onClick={model.open(mail.key)},enabled=!state.busy,modifier=Modifier.fillMaxWidth()) {
        Column(Modifier.fillMaxWidth(),verticalArrangement=Arrangement.spacedBy(4.dp)) {
         if(!mail.read) Text("Nieprzeczytana",style=MaterialTheme.typography.labelSmall)
@@ -55,6 +66,7 @@ import androidx.compose.ui.unit.dp
        }
       }
      }
+     if(visible.isEmpty() && state.items.isNotEmpty() && !state.busy) item { Text("Brak wyników w pobranych wiadomościach. Możesz pobrać starsze.") }
      if(state.more) item { Button(onClick={model.more()},enabled=!state.busy) { Text("Pobierz starsze") } }
      if(state.loaded && !state.busy && state.items.isEmpty() && state.error==null) item { Text("Brak odebranych wiadomości.") }
      item { Text("Odczyt bez zmiany statusu na serwerze. Wysyłanie odpowiedzi nie jest jeszcze dostępne.",style=MaterialTheme.typography.bodySmall) }
