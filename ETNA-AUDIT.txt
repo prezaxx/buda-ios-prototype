@@ -1,0 +1,130 @@
+AUDYT ETNA APK vs BUDA iOS 0.6
+Data: 2026-11-03
+
+WYNIK
+Nie, Buda 0.6 nie ma wszystkich funkcji Etny. Ma główne ekrany odczytu
+eduVULCAN i nowy pulpit, ale brakuje m.in. wysyłania wiadomości, szkiców,
+kosza, usprawiedliwień, zebrań, informacji o szkole, szczęśliwego numerka,
+widgetu, pełnego lokalnego cache oraz powiadomień o nowych danych.
+
+ZAKRES I WIARYGODNOŚĆ
+Analizowany plik: C:\rea\etna.apk
+SHA256: f19861a7d81c2b01898f17b972e4b3674f14d9a9822f8cd781e78047239753de
+Pakiet: io.gitlab.etnaapp; wersja 0.3.6, versionCode 42.
+Porównanie Buda: źródła C:\rea\work\buda-ios-prototype, wersja0.6/build7,
+commit aplikacji fc6ab0a. Wyniki dotyczą kodu i zasobów, nie testu wszystkich
+funkcji na żywym koncie. Dostępność może zależeć od szkoły, dostawcy i uprawnień.
+
+REA użyto do identyfikacji/inwentaryzacji archiwum. Root sesji otrzymał:
+- summary Evidence: ev_e3a794a773e311d18b0c68d686b0295f0f38068e5cafb2383352d02895e5a3d6
+- parent Evidence: ev_4ee86edaeb5d564d0549afa12ea9b8c25d9f8999fea51efb1e34bb5bb83a7205
+- inventory Evidence: ev_abcad854e5e42981a2582a32e4b9ecc9de25ecd0b095df2dd3e2fa1084c10ee9
+1832 pozycje archiwum, 1692 węzły, bez sprzeczności integralności.
+To dowód zawartości archiwum, nie działania funkcji.
+
+REA inspect_android_package jest niedostępne: brak osobno dostarczonego
+jadx-headless-mcp0.7.1 JAR / REA_JADX_MCP_JAR. Root otrzymał
+capability_unavailable, retryable=false. CLI REA6.8.0 doctor również
+potwierdził brak tego providera. Nie instalowano silników ani nie zmieniano
+rejestracji. Sesja pomocnicza nie miała narzędzi REA MCP; nie wymuszała restartu.
+
+Uzupełnienie analizy wykonano zwykłym apktool3.0.3 i Java21, NIE narzędziem REA:
+java -jar C:\rea\tools\apktool_3.0.3.jar d C:\rea\etna.apk
+  -o C:\rea\analysis\etna-audit-06
+Wynik: dekodowany manifest, zasoby, smali obu DEX, bez uruchamiania APK.
+Obfuskacja R8 ogranicza nazwy, ale wywołania platformy i część nazw klas/
+serializatorów/SQL pozostają czytelne. Zasoby CVR zdekodowano base64 do
+C:\rea\analysis\etna-audit-06\strings-pl-decoded.tsv; pierwsza kolumna to
+numer wiersza oryginalnego CVR. Etykieta zasobu sama w sobie nie dowodzi,
+że funkcja jest w pełni operacyjna. Macierz uwzględnia tę różnicę.
+Lokalne etna-reference zawiera tylko szablon README i messages.json;
+nie użyto go jako źródła implementacji Etny.
+
+MACIERZ FUNKCJI (stan Budy0.6, przed następną zmianą)
+Funkcja | Etna: rodzaj dowodu | Buda0.6
+Logowanie eduVULCAN / uczniowie | kod modeli/API + trasy Login/SelectStudents | Tak
+Wiele jednoczesnych kont logowania | AccountManager + zasoby Add/DeleteAccount | Nie; jedno logowanie, wiele dzieci
+Inni dostawcy (np. Librus, USOS) | kod API Librus, trasy ChoosePlatform/UsosWebView | Nie; eduVULCAN
+Pulpit / dzisiejszy plan / terminy | Route.Start + zasoby Home/TimetableCard/ExamsCard/HomeworkCard | Tak
+Oceny / opisy / semestr | Route.Grades + model/baza Grades | Tak, odczyt
+Wagi, punkty i własne obliczanie średniej | zasoby Grades_Weight/Points i Settings_Grades_ForceLocalAverage | Częściowo; średnie szkoły, bez wag i lokalnych obliczeń
+Oceny proponowane/końcowe | Grades_Summary_* | Tak, odczyt
+Kolory ocen / wybór schematu | Settings_Grades_ColorScheme + ColoredGradesOnStartScreen | Nie w0.6; jednolita paleta
+Plan, zastępstwa, odwołania | Route.Timetable + model/baza + zasoby | Tak; grupy dni, filtr, godziny
+Pomijanie weekendów / ukrywanie dodatkowych / ignorowanie wolnych dni | Settings_Timetable_* i SkipWeekends | Nie jako ustawienia
+Frekwencja | Route.Attendance + baza Attendance | Tak, odczyt
+Usprawiedliwienia i ich statusy | Attendance_Justify + endpoint mobile/presence/justification/lesson + modele | Nie
+Procent frekwencji i sposób liczenia zwolnień | Attendance_YourAttendance i Settings_ExemptionBehavior_* | Nie
+Sprawdziany / zadania / terminy | Route.Exams/Homework + tabele | Tak, odczyt
+Ostrzeżenia o możliwym naruszeniu zasad sprawdzianów | zasoby Exams_Student_Rights_* | Nie; działanie reguł nie prześledzone w pełni
+Uwagi / osiągnięcia | Route.Notes + NotesAndAchievements | Częściowo; uwagi, brak osobnego widoku osiągnięć
+Ogłoszenia | Route.Announcements + baza | Tak, odczyt
+Zebrania | Route.Meetings + baza Meetings (topic/dateTime/place/agenda) | Nie
+Informacje o szkole i nauczycielach | Route.School + School_* | Nie
+Szczęśliwy numerek | model/baza LuckyNumber + zasoby | Nie
+Widget szczęśliwego numerka | manifest LuckyNumberGlanceWidgetReceiver i ConfigureActivity | Nie
+Wiadomości odebrane / wysłane | Route.Messages + modele/tabele + zasoby | Tak, odczyt
+Wysyłanie / odbiorcy / szkice / kosz | Message_Send/SelectRecipient, Drafts+DraftRecipientCrossRef, Messages_Trash | Nie (nieużywane metody biblioteki API nie oznaczają funkcji UI)
+Status odczytu / oznacz wszystkie | Messages_Read_All/Preview_Read, Settings_MessagesIncognito | Odczyt bez wysyłania potwierdzenia, brak sterowania statusem
+Załączniki | modele wiadomości i zasoby | Częściowo; bezpieczne linki HTTPS w przeglądarce, czasem wymaga ponownego logowania
+Automatyczna synchronizacja / powiadomienia o zmianach | prześledzony WorkManager -> SyncWork -> NotificationManager | Nie w0.6
+Historia/ustawienia powiadomień i diagnostyka | Route.Notifications/NotificationsTest + debug zasoby | Nie
+Lokalna baza danych szkolnych | AppDatabase_Impl + SQL tabel i migracji | Nie; Keychain przechowuje sesję/skrzynki, bez trwałego cache ocen
+Motyw jasny/ciemny | zasoby Settings_Theme_* | Tak, zgodnie z systemem
+AMOLED / własny kolor / MaterialYou | zasoby ustawień | Nie (MaterialYou specyficzne dla Androida)
+Ukrywanie danych ucznia/nauczycieli | Settings_HidePersonalInfo/HideTeacherInfo | Nie
+Automatyczny aktualizator i kanały | permission REQUEST_INSTALL_PACKAGES, InstallationReceiver, UpdaterChannel_* | Nie; IPA aktualizowane przez AltStore
+
+POWIADOMIENIA ETNY — PRZEŚLEDZIONY MECHANIZM
+1. AndroidManifest.xml: POST_NOTIFICATIONS (wiersz7), WAKE_LOCK, BOOT_COMPLETED;
+   WorkManagerInitializer (ok.wiersza47), SystemJobService i RescheduleReceiver.
+2. smali/fh6.smali:39-51: tworzenie SyncWork z interwałem 0x1e MINUTES (30min).
+   :56-60: initial delay0xa MINUTES (10min); potwierdzenie znaczenia metody
+   Lo38.e w smali/o38.smali:1028-1100, komunikat "given initial delay".
+   :123+: constraint qc4.h; qc4.smali:61 identyfikuje CONNECTED.
+   :169-177: rejestracja unikalnej pracy pod nazwą SyncWork.
+   To zaobserwowana ścieżka konfiguracji, nie gwarancja wywołania dokładnie
+   co30min ani wykluczenie innych harmonogramów; są też ścieżki jednorazowe.
+3. smali/io/gitlab/etnaapp/service/worker/SyncWork.smali:1-2:
+   dziedziczy po androidx.work.CoroutineWorker; :879 i :1266 opisują błędy
+   odświeżania ucznia / synchronizacji w tle.
+4. Ten worker wielokrotnie wywołuje f()->hn, następnie hn.b (np.:2488,
+   :2936,:3361,:3777,:4363 i dalsze). hn.smali:1308,1808,2351 wywołuje
+   android.app.NotificationManager.notify(...). Są lokalnie budowane notyfikacje.
+5. hn.smali:78,82,85: kanał new_grades_channel ma importance4 (HIGH).
+   Dalsze kanały: new_notes, new_exam, new_message, new_homework,
+   new_announcement, new_attendance, change_timetable, lucky_number, new_meeting.
+6. pm.smali:3098-3188 dodaje isNotified do ocen i innych tabel. To wspiera
+   wniosek o śledzeniu zgłoszonych zmian, ale nie jest pełnym audytem deduplikacji.
+7. Ograniczone wyszukiwanie w całym dekodowanym manifeście i obu katalogach
+   smali po FirebaseMessaging, MESSAGING_EVENT, com.google.android.c2dm
+   nie dało wyników. Nie dowodzi to braku każdej możliwej implementacji push.
+
+WNIOSEK DOTYCZĄCY PUSH
+Potwierdzona ścieżka Etny to pobieranie/synchronizacja w tle na Androidzie
+oraz lokalne powiadomienie. Nie ma dowodu, że w tej ścieżce serwer wysyła
+push. Przepisanie WorkManager na iOS nie tworzy APNs. Audyt APK nie ustala
+możliwości podpisu Apple ani konfiguracji serwera Budy; to osobne zadanie.
+Nie uruchamiano Etny na koncie, nie mierzono opóźnień ani zachowania po
+zamknięciu aplikacji. Nie można obiecać identycznej niezawodności na iOS.
+
+ŚCIEŻKI DOWODÓW
+Wszystkie poniższe względem C:\rea\analysis\etna-audit-06:
+- AndroidManifest.xml, apktool.yml
+- smali/fh6.smali, o38.smali, ws4.smali, qc4.smali, hn.smali
+- smali/io/gitlab/etnaapp/service/worker/SyncWork.smali
+- smali/io/gitlab/etnaapp/database/AppDatabase_Impl.smali
+- smali/ig5.smali (trasy UI), eg5.smali, mh5.smali, ph5.smali
+- smali/pm.smali (tabele, migracje i isNotified)
+- smali/mn7.smali:31518 (endpoint usprawiedliwień)
+- assets/composeResources/etna.app.generated.resources/values-pl/strings.commonMain.cvr
+  szczególnie wiersze17-38,102-113,146-164,213-237,262-325.
+- strings-pl-decoded.tsv (czytelna projekcja zasobów)
+Buda: composeApp/src/commonMain/kotlin/pl/buda/ios/{Diary,Prototype,
+Dashboard,OverviewPanes,Messages,MessagesPane,SessionVault}.kt oraz host Swift.
+
+POZOSTAŁE NIEWIADOME
+Pełna osiągalność wszystkich ekranów, wszystkie reguły średnich/frekwencji,
+obsługa konkretnych szkół/dostawców, zachowanie runtime, opóźnienia notyfikacji,
+pełna zgodność funkcji i interfejsów. Macierz nie jest deklaracją kompletnego
+przeportowania Etny ani dowodem, że każdy zasób opisuje aktywną funkcję.

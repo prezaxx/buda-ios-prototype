@@ -3,10 +3,12 @@ import Security
 import ComposeApp
 
 final class KeychainVault: NSObject, SessionVault {
+    private let account: String
+    init(account: String = "diary-session-v1") { self.account = account; super.init() }
     private var query: [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: (Bundle.main.bundleIdentifier ?? "pl.buda.ios.prototype") + ".session",
-         kSecAttrAccount as String: "diary-session-v1"]
+         kSecAttrAccount as String: account]
     }
     func read() -> String? {
         var q = query
@@ -22,13 +24,18 @@ final class KeychainVault: NSObject, SessionVault {
     func write(value: String) -> Bool {
         guard let data = value.data(using: .utf8) else { return false }
         let attrs: [String: Any] = [kSecValueData as String: data,
-          kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
+          kSecAttrAccessible as String: UserDefaults.standard.bool(forKey: "gradeChecksEnabled") ? kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly : kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
         let status = SecItemUpdate(query as CFDictionary, attrs as CFDictionary)
         if status == errSecSuccess { return true }
         guard status == errSecItemNotFound else { return false }
         var q = query
         attrs.forEach { q[$0.key] = $0.value }
         return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
+    }
+    func setBackgroundAccess(_ enabled: Bool) -> Bool {
+        let access = enabled ? kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly : kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        let result = SecItemUpdate(query as CFDictionary, [kSecAttrAccessible as String: access] as CFDictionary)
+        return result == errSecSuccess || result == errSecItemNotFound
     }
     func clear() -> Bool {
         let status = SecItemDelete(query as CFDictionary)

@@ -4,7 +4,7 @@ import kotlinx.serialization.json.*
 // Only decode data actually needed by this screen. Unused author/weight/colour
 // metadata must not make a pupil's entire grade list unreadable.
 data class GradeRow(val id:Int, val content:String, val subject:String,
- val description:String, val comment:String, val createdAt:String)
+ val description:String, val comment:String, val createdAt:String,val teacherRgb:Int?=null)
 class GradeFormatException(val field:String):Exception("Unsupported grade field")
 internal fun parseGrades(payload:JsonElement, expectedPupil:Int):List<GradeRow> {
  val rows=payload as? JsonArray ?: throw GradeFormatException("Envelope: oczekiwano listy")
@@ -21,8 +21,19 @@ internal fun parseGrades(payload:JsonElement, expectedPupil:Int):List<GradeRow> 
   val column=row["Column"] as? JsonObject
   val subject=column?.get("Subject") as? JsonObject
   GradeRow(id,content,subject?.get("Name").text().ifBlank { "Nie podano przedmiotu" },
-   column?.get("Name").text(),row["Comment"].text(),row["CreatedAt"].text())
+   column?.get("Name").text(),row["Comment"].text(),row["CreatedAt"].text(),parseTeacherColor(column?.get("Color")))
  }
 }
 private fun JsonElement?.text():String = (this as? JsonPrimitive)?.contentOrNull.orEmpty()
 private fun JsonElement?.number():Int? = (this as? JsonPrimitive)?.intOrNull
+
+internal fun parseTeacherColor(value:JsonElement?):Int? {
+ val raw=(value as? JsonPrimitive)?.contentOrNull?.trim() ?: return null
+ val number=when {
+  raw.startsWith("#") -> raw.drop(1).takeIf { it.length==6 || it.length==8 }?.toLongOrNull(16)
+  raw.startsWith("0x",true) -> raw.drop(2).takeIf { it.length==6 || it.length==8 }?.toLongOrNull(16)
+  else -> raw.toLongOrNull()
+ } ?: return null
+ if(number < Int.MIN_VALUE.toLong() || number > 0xFFFFFFFFL) return null
+ return (number and 0xFFFFFFL).toInt()
+}

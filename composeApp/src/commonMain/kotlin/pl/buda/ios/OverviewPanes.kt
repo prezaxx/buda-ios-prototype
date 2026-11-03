@@ -168,7 +168,7 @@ import kotlin.time.Clock
  var closed by remember { mutableStateOf(setOf<String>()) }
  var detail by remember { mutableStateOf<GradeRow?>(null) }
  val grades=state.grades.filter { matchesSearch(query,it.subject,it.description,it.comment,it.content) }
- detail?.let { grade -> AlertDialog(onDismissRequest={detail=null},title={Text(grade.subject+" · "+grade.content)},text={SelectionContainer { Text(listOf(grade.description,grade.comment,grade.createdAt).filter { it.isNotBlank() }.joinToString("\n\n")) }},confirmButton={TextButton(onClick={detail=null}) { Text("Zamknij") }}) }
+ detail?.let { grade -> AlertDialog(onDismissRequest={detail=null},title={Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) { GradeBadge(grade.content,teacherRgb=grade.teacherRgb);Text(grade.subject,Modifier.weight(1f),style=MaterialTheme.typography.titleLarge) }},text={SelectionContainer { Text(listOf(grade.description,grade.comment,grade.createdAt).filter { it.isNotBlank() }.joinToString("\n\n")) }},confirmButton={TextButton(onClick={detail=null}) { Text("Zamknij") }}) }
  LazyColumn(modifier,verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=24.dp)) {
   item {
    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -177,6 +177,7 @@ import kotlin.time.Clock
    }
    OutlinedTextField(query,{query=it},singleLine=true,label={Text("Przedmiot lub opis oceny")},modifier=Modifier.fillMaxWidth(),trailingIcon={if(query.isNotEmpty()) TextButton(onClick={query=""}) { Text("Wyczyść") }})
   }
+  item { GradeLegend() }
   state.error?.let { item { Text(it,color=MaterialTheme.colorScheme.error) } }
   if(!state.busy && state.error==null && grades.isEmpty()) item { EmptyCard("Brak ocen pasujących do widoku.") }
   if(grouped) gradeGroups(grades).forEach { (subject,list) ->
@@ -188,9 +189,9 @@ import kotlin.time.Clock
        Text("${list.size}  "+if(subject in closed) "+" else "−",color=MaterialTheme.colorScheme.primary)
       }
       if(subject !in closed) {
-       list.chunked(5).forEach { chunk -> Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-        chunk.forEach { grade -> FilledTonalButton(onClick={detail=grade},modifier=Modifier.weight(1f),contentPadding=PaddingValues(horizontal=6.dp,vertical=10.dp)) { Text(grade.content) } }
-        repeat(5-chunk.size) { Spacer(Modifier.weight(1f)) }
+       list.chunked(4).forEach { chunk -> Row(horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+        chunk.forEach { grade -> GradeBadge(grade.content,Modifier.weight(1f),teacherRgb=grade.teacherRgb,onClick={detail=grade}) }
+        repeat(4-chunk.size) { Spacer(Modifier.weight(1f)) }
        } }
        Text("Dotknij oceny, aby zobaczyć opis.",style=MaterialTheme.typography.labelSmall)
       }
@@ -200,7 +201,7 @@ import kotlin.time.Clock
   } else items(grades.sortedByDescending { it.createdAt },key={it.id}) { grade ->
    Card(onClick={detail=grade},modifier=Modifier.fillMaxWidth()) {
     Row(Modifier.padding(16.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
-     Text(grade.content,style=MaterialTheme.typography.headlineMedium,color=MaterialTheme.colorScheme.primary)
+     GradeBadge(grade.content,Modifier.widthIn(min=60.dp,max=100.dp),teacherRgb=grade.teacherRgb)
      Column(Modifier.weight(1f)) { Text(grade.subject,style=MaterialTheme.typography.titleMedium);Text(grade.description);Text(grade.createdAt.take(10),style=MaterialTheme.typography.labelSmall) }
     }
    }

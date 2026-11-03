@@ -1,3 +1,18 @@
+Buda iOS 0.7.0 (build 8)
+Common Kotlin/JVM compilation: PASS; tests: 67 PASS
+Native iOS build: PENDING
+
+REA archive identity/inventory of etna.apk + apktool/smali fallback: ETNA-AUDIT.txt.
+JADX provider missing; no claim of complete runtime audit or feature parity.
+Teacher grade colors take precedence; optional malformed colors do not fail grades.
+Local notifications only: UNUserNotificationCenter + BGAppRefreshTask + foreground
+checks. No remote APNs provider, push entitlement or push delivery implemented.
+Notification baseline and session stored only in device Keychain. Enabling local
+notifications opts into AfterFirstUnlockThisDeviceOnly for background reads;
+disabling restores WhenUnlockedThisDeviceOnly. User-facing settings explain this.
+No live iPhone notification/background execution validation available here.
+
+Previous release evidence:
 Buda iOS 0.6.0 (build 7)
 Common Kotlin/JVM compilation: PASS; tests: 55 PASS
 Native iOS build and IPA packaging: PASS

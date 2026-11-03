@@ -22,7 +22,7 @@ data class ScreenState(
  val section:Section=Section.HOME,val rows:List<DiaryRow> = emptyList(),
  val dashboard:DashboardData?=null,val from:String="",val to:String="",val remember:Boolean=true,val notice:String?=null
 )
-class Prototype(private val scope:CoroutineScope,private val vault:SessionVault) {
+class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,private val notifications:NotificationControls=NoNotificationControls) {
  private val client=HttpClient { install(HttpTimeout) { requestTimeoutMillis=45000 } }
  private val mutable=MutableStateFlow(ScreenState())
  val state=mutable.asStateFlow()
@@ -44,6 +44,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
   } catch(e:Exception) { mutable.value=ScreenState(notice="Nie udało się odczytać zapisanej sesji. Zaloguj się ponownie; hasło nie było zapisywane.") }
  }
  fun remember(enabled:Boolean) {
+  if(!enabled) notifications.clear()
   if(!enabled && !vault.clear()) { mutable.value=mutable.value.copy(notice="Nie udało się usunąć sesji z pęku kluczy.");return }
   mutable.value=mutable.value.copy(remember=enabled,notice=null)
   if(enabled) save()
@@ -140,7 +141,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault)
  fun back() { messages.clear();job?.cancel();mutable.value=mutable.value.copy(selected=null,periodId=null,grades=emptyList(),rows=emptyList(),error=null,busy=false);save() }
  fun logout() {
   if(!vault.clear()) { mutable.value=mutable.value.copy(notice="Nie udało się usunąć zapisanej sesji. Spróbuj ponownie po odblokowaniu telefonu.");return }
-  messages.clear();job?.cancel();mutable.value=ScreenState()
+  notifications.clear();messages.clear();job?.cancel();mutable.value=ScreenState()
  }
  fun close() { messages.clear();job?.cancel();client.close() }
 }

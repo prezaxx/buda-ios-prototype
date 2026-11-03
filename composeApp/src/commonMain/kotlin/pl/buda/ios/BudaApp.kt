@@ -13,8 +13,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
-@Composable fun BudaApp(vault:SessionVault) {
- val scope=rememberCoroutineScope();val model=remember(vault) { Prototype(scope,vault) }
+@Composable fun BudaApp(vault:SessionVault,notifications:NotificationControls=NoNotificationControls) {
+ val scope=rememberCoroutineScope();val model=remember(vault,notifications) { Prototype(scope,vault,notifications) }
  DisposableEffect(model) { onDispose { model.close() } }
  val state by model.state.collectAsState()
  var email by remember { mutableStateOf("") };var password by remember { mutableStateOf("") }
@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
     Surface(Modifier.fillMaxWidth().padding(top=8.dp),shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.primaryContainer) {
      Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),horizontalArrangement=Arrangement.SpaceBetween) {
-      Column { Text("Buda",style=MaterialTheme.typography.headlineMedium);Text("Twój szkolny dzień",style=MaterialTheme.typography.labelMedium) }
-      Text("0.6",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
+      Column(Modifier.weight(1f)) { Text("Buda",style=MaterialTheme.typography.headlineMedium);Text("Twój szkolny dzień",style=MaterialTheme.typography.labelMedium) }
+      TextButton(onClick={notifications.showSettings()}) { Text("Powiadomienia") }
      }
     }
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())

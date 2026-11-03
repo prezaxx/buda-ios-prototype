@@ -4,7 +4,7 @@ import ComposeApp
 
 struct ComposeView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
-        MainViewControllerKt.MainViewController(vault: KeychainVault())
+        MainViewControllerKt.MainViewController(vault: KeychainVault(), notifications: NativeNotificationControls())
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}

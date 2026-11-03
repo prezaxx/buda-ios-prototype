@@ -8,5 +8,7 @@
 	<string>Buda iOS</string>
 	<key>CFBundleName</key>
 	<string>Buda iOS</string>
+    <key>UIBackgroundModes</key><array><string>fetch</string></array>
+    <key>BGTaskSchedulerPermittedIdentifiers</key><array><string>pl.buda.ios.prototype.grades</string></array>
 </dict>
 </plist>

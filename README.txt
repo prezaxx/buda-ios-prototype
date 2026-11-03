@@ -1,4 +1,4 @@
-BUDA iOS 0.6.0
+BUDA iOS 0.7.0
 
 Zakres: logowanie eduVULCAN, wybor ucznia i semestru, oceny,
 plan z zastepstwami i dodatkowymi zajeciami, frekwencja, sprawdziany,
@@ -16,11 +16,13 @@ a nie zastepowany informacja o pustej liscie. Czesc planu/podsumowania moze
 byc dostepna mimo bledu drugiej czesci; komunikat opisuje ten przypadek.
 
 Zapamietaj sesje: klucz urzadzenia, konta uczniow i sesja wiadomosci w iOS Keychain,
-WhenUnlockedThisDeviceOnly. Haslo nie jest zapisywane. Dane nie sa
+Domyslnie WhenUnlockedThisDeviceOnly; opcjonalne sprawdzanie ocen w tle
+zmienia to na AfterFirstUnlockThisDeviceOnly. Haslo nie jest zapisywane. Dane nie sa
 synchronizowane do iCloud ani wysylane na wlasny serwer Budy.
 Wyloguj usuwa zapis. Sesja moze wygasnac po stronie szkoly.
 Przy zmianie podpisu AltStore dostep do starego Keychain moze sie zmienic.
-Nie przechowujemy trwale kopii ocen i pozostalych wpisow offline.
+Nie ma pelnego trybu offline. Po wlaczeniu powiadomien lokalnych zapisujemy
+w Keychain historie ocen potrzebna do porownywania zmian.
 
 IPA: GitHub Actions, workflow Build IPA for AltStore.
 Niepodpisany plik wymaga podpisania i instalacji przez AltStore.
@@ -88,3 +90,27 @@ Nowe w 0.6 (build 7):
 Start pokazuje do 8 najblizszych wpisow na sekcje; pelna lista przez Wszystkie.
 Nie jest to tryb offline ani implementacja powiadomien push.
 Uzytkownik potwierdzil dzialanie 0.5. Nowe widoki wymagaja sprawdzenia na iPhonie.
+
+Nowe w 0.7 (build 8):
+- Kolor oceny z Column.Color (kolor nauczyciela) ma pierwszenstwo.
+  Bez poprawnego koloru: pomocnicza skala 6 zielona -> 1 czerwona;
+  np/zw/bz pozostaja neutralne. Kontrast tekstu dobierany do tla.
+- Czytelniejsze kafelki ocen i legenda; kolor zachowany w szczegolach.
+- Lokalne powiadomienia o nowych/zmienionych ocenach wszystkich zapisanych
+  uczniow. Pierwszy odczyt kazdego konta/semestru zapisuje cicha baze.
+  Kolejne odczyty porownuja dane; chwilowo pusta odpowiedz nie zeruje bazy.
+- Powiadomienia -> Wlacz -> Sprawdz teraz / Test banera i dzwieku.
+  Potrzebne Zapamietaj sesje i zgoda iOS. Baner nie ujawnia nazwiska ani ocen.
+- Sprawdzanie po otwarciu i co 5 minut podczas aktywnego uzywania.
+  BGAppRefreshTask z earliestBeginDate za 30 minut: to prosba, nie harmonogram.
+  iOS decyduje, czy/kiedy uruchomi sprawdzenie; wymuszone zamkniecie,
+  oszczedzanie energii i ustawienia systemu moga je ograniczac.
+- Po wlaczeniu sesja/historia w Keychain ThisDeviceOnly sa dostepne w tle
+  po pierwszym odblokowaniu od restartu. Wylaczenie przywraca WhenUnlocked.
+  Haslo nadal nie jest zapisywane; brak zewnetrznego serwera przechowujacego sesje.
+- Wylogowanie/wylaczenie zapamietywania sesji wylacza sprawdzanie.
+  Wylogowanie usuwa takze historie porownan i dostarczone powiadomienia Budy.
+To NIE jest wdrozenie APNs push. Brak nadawcy APNs i podpisu z odpowiednim
+uprawnieniem. Test banera sprawdza lokalne wyswietlanie, nie prace w tle.
+Wersja nie dodaje jeszcze powiadomien o wiadomosciach i pozostalych wpisach.
+Porownanie Etny z Buda0.6: ETNA-AUDIT.txt. Nie mamy pelnej zgodnosci funkcji.
