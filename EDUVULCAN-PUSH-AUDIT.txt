@@ -1,0 +1,46 @@
+AUDYT STATYCZNY eduVULCAN: powiadomienia Android
+Wersja 26.08.00 (G), package pl.edu.vulcan.hebe.ce, versionCode 1017.
+Oryginał: C:\rea\vulcan.xapk
+SHA256: 9d01ceafb3f89bd575584504b348cfa80c3ab1d13780cc19196fac99bc5a5530
+
+REA: inwentarz 8 plików, brak sprzeczności integralności.
+summary ev_3da11587f94bfd55c13f599d635b209dc815061a7c68b2d4b1d7e1af3251eee3
+parent ev_b8a506325726f3ccba590a025fd83ae2c256f3875e66f2f21baa7240bbb05fa4
+inventory ev_2c3e5983438994eca1808b83bc204ba618e54e4716c897e7b54aa0bb41225476
+REA JADX niedostępny: brak REA_JADX_MCP_JAR (wymagany provider 0.7.1).
+Dalsze dowody: zwykłe apktool 3.0.3, nie dekompilacja semantyczna REA.
+Zdekodowano bazowy APK, nie zmieniano oryginału. Ostrzeżenia apktool dotyczą brakujących zasobów split APK. Brak testu urządzenia i ruchu sieciowego.
+Względne ścieżki poniżej dotyczą C:\rea\analysis\eduvulcan-push\decoded.
+
+POTWIERDZONE KODEM
+1. Flutter/Dart AOT, logika Dart w libapp.so z config.arm64_v8a.apk.
+2. AndroidManifest.xml:66 ustawia domyślny kanał vulcan_hebe_channel; 136-147 rejestruje FlutterFirebaseMessagingBackgroundService, FlutterFirebaseMessagingService, receiver com.google.android.c2dm.intent.RECEIVE. To integracja Firebase Cloud Messaging.
+3. smali/com/google/firebase/messaging/FirebaseMessagingService.smali:279-303 obsługuje NEW_TOKEN i wywołuje c(token). Implementacja FlutterFirebaseMessagingService.smali:20-52 publikuje token przez LiveData. smali/ic/e.smali:63-70 przekazuje go do Flutter MethodChannel jako Messaging#onTokenRefresh. Nie jest to jeszcze dowód wysłania tokenu do serwera VULCAN.
+4. FlutterFirebaseMessagingReceiver.smali:68-249 odbiera extras, tworzy RemoteMessage i przekazuje do executor/Runnable a9/f. smali/a9/f.smali:2563-2605 kieruje wiadomość dla aplikacji na pierwszym planie do LiveData; ic/e.smali:99-106 przekazuje ją do Flutter jako Messaging#onMessage. Sprawdzenie pierwszego planu: i6/oa.smali:430,470,527-531 (keyguard, proces, importance 100).
+5. a9/f.smali:2624-2729 kieruje wiadomość w tle do FlutterFirebaseMessagingBackgroundService, z uwzględnieniem google.original_priority/google.priority high. Potwierdza obsługę otrzymanych komunikatów FCM, nie potwierdza priorytetu rzeczywistych komunikatów ocen.
+6. FlutterLocalNotificationsPlugin.smali:12598-12664 zawiera showNotification -> createNotification -> k1/g0.b. k1/g0.smali:283 wywołuje Android NotificationManager.notify. Aplikacja zawiera działającą ścieżkę mostu do lokalnego wyświetlenia powiadomienia; nie ustalono natywnego grafu wywołań Dart od konkretnej oceny do tego mostu.
+
+WSKAZÓWKI W DART AOT — STRINGI, NIE POTWIERDZONY KONTRAKT API
+Plik C:\rea\analysis\eduvulcan-push\libapp.so; offsety bajtowe:
+0xebcf9 mobile/push/token
+0x1037dd mobile/push/check
+0x11e2d1 mobile/push/all
+0x12b714 mobile/push/configure
+0x1961f8 mobile/push
+0x1e8e5d mobile/push/locale
+0xe13e0 setPushToken
+0x12f03e sendFirebaseToken
+0x1d1c55 package:hebe_api/src/services/push_api_service.dart
+0x1d49f0 package:vulcan_hebe/application/vendor/firebase/messaging/firebase_remote_push_facade.dart
+0x96202 GradePush
+0x8f617 sendFirebaseToken: No token available
+0xd690b sendFirebaseToken: No online accounts found
+0x1ccb6a sendFirebaseToken: Some accounts failed, will retry on next startup
+Powyższe sugeruje rejestrację tokenu dla kont i konfigurację push. Nie potwierdzono adresu bazowego dla tych ścieżek, metody HTTP, nagłówków, podpisu, treści żądania ani odpowiedzi. assets/flutter_assets/endpoints.json podaje hosty komunikacyjne, ale nie dowodzi połączenia z powyższymi ścieżkami. Nie wykonywano żądań do znalezionych adresów. Nie kopiowano kluczy Firebase ani tokenów.
+
+WNIOSEK DLA BUDY IOS
+eduVULCAN zawiera FCM z natywną obsługą tokenów i wiadomości w tle; to mocniejszy dowód niż same nazwy bibliotek. Analizowana Etna miała potwierdzony WorkManager polling 30 min i lokalne powiadomienia, więc mechanizmy nie są równoważne.
+XAPK jest artefaktem Android. Nie dowodzi konfiguracji APNs, entitlementów ani sposobu rejestracji klienta iOS eduVULCAN. Nie można obiecać przejęcia oficjalnego strumienia push przez inną aplikację na podstawie tych plików. Firebase projektu eduVULCAN nie jest konfiguracją Budy. Potrzebny jest własny poprawnie podpisany klient iOS i dostawca push obsługujący jego tokeny. Statyczna obecność kanału nie gwarantuje banera; rzeczywista prezentacja wymaga testu i ustawień systemowych.
+
+POZOSTAŁE LUKI DOWODOWE
+Nie zrekonstruowano grafu wywołań Dart AOT ani kontraktu serwera. Nie ustalono czy dany typ powiadomień jest ograniczony uprawnieniami/abonamentem. Nie potwierdzono pełnej ścieżki konkretnej nowej oceny w działającym systemie. Nie potwierdzono iOS. Brak tych dowodów należy zachować w opisie implementacji.

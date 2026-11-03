@@ -1,6 +1,10 @@
 Buda iOS 0.7.0 (build 8)
 Common Kotlin/JVM compilation: PASS; tests: 67 PASS
-Native iOS build: PENDING
+Native iOS build and IPA packaging: PASS
+Build: https://github.com/prezaxx/buda-ios-prototype/actions/runs/41703804209
+Application source commit: 7fdccd1
+IPA CRC, bundle ID, version, executable and background configuration: PASS
+IPA SHA256: 44c7a545ebefc02f2224b6c98ca0b94fd16d6709448daa82e3c3bda2ffcb479f
 
 REA archive identity/inventory of etna.apk + apktool/smali fallback: ETNA-AUDIT.txt.
 JADX provider missing; no claim of complete runtime audit or feature parity.
