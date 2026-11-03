@@ -121,7 +121,7 @@ private final class PollCallback: NSObject, GradePollCallback {
                 }
                 self.finish(false); return
             }
-            func save(_ delivered: Bool) {
+            @MainActor func save(_ delivered: Bool) {
                 guard self.running, self.generation == token else { return }
                 guard delivered else { self.status = "iOS nie przyjął powiadomienia. Punkt odniesienia nie został zmieniony."; self.finish(false); return }
                 guard self.baseline.write(value: result.snapshot) else { self.status = "Nie udało się zapisać historii porównań w pęku kluczy."; self.finish(false); return }
@@ -160,7 +160,7 @@ final class NativeNotificationControls: NSObject, NotificationControls {
             presenter?.present(UIHostingController(rootView: NotificationSettingsView()), animated: true)
         }
     }
-    func clear() { DispatchQueue.main.async { GradeNotificationService.shared.clear() } }
+    func clear_() { DispatchQueue.main.async { GradeNotificationService.shared.clear() } }
 }
 private struct NotificationSettingsView: View {
     @ObservedObject private var service = GradeNotificationService.shared
