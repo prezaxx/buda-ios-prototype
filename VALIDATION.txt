@@ -1,6 +1,10 @@
 Buda iOS 0.4.0 (build 5)
 Common Kotlin/JVM compilation: PASS; tests: 39 PASS
-Native iOS build: PENDING
+Native iOS build and IPA packaging: PASS
+Build: https://github.com/prezaxx/buda-ios-prototype/actions/runs/41598083090
+Application source commit: 32643d2
+IPA integrity, bundle identifier, version and executable: PASS
+IPA SHA256: d89720e94eba6f8a909897224a07f9bc9488a0cde866136624de6b335408758e
 
 Reported failure: RedirectResponseException after login to messages in 0.3.
 Identified default Ktor redirects are GET/HEAD-only; POST 302 was rejected.
