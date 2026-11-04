@@ -1,6 +1,10 @@
 Buda iOS 0.9.0 (build 10)
 Common Kotlin/JVM compilation: PASS; 87 tests PASS, 0 failures/errors.
-Native iOS build: PENDING.
+Native iOS build and IPA packaging: PASS
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/41838780417
+Application source commit: 78f63f1
+IPA CRC/version/build/bundle/executable/background configuration: PASS
+IPA SHA256: 07d4469a9246babc0066fd834b96a309ad1c5b24e312a6977510f1dde2245dea
 Tests cover sibling/semester cache isolation, storage failures, eviction,
 unknown send outcome persistence, recipient/reply mailbox validation,
 HTTP/HTML/error acknowledgement rejection, notification detail history,
