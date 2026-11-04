@@ -1,9 +1,10 @@
 package pl.buda.ios
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 
 // Only decode data actually needed by this screen. Unused author/weight/colour
 // metadata must not make a pupil's entire grade list unreadable.
-data class GradeRow(val id:Int, val content:String, val subject:String,
+@Serializable data class GradeRow(val id:Int, val content:String, val subject:String,
  val description:String, val comment:String, val createdAt:String,val teacherRgb:Int?=null)
 class GradeFormatException(val field:String):Exception("Unsupported grade field")
 internal fun parseGrades(payload:JsonElement, expectedPupil:Int):List<GradeRow> {

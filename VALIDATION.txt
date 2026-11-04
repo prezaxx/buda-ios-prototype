@@ -1,3 +1,15 @@
+Buda iOS 0.9.0 (build 10)
+Common Kotlin/JVM compilation: PASS; 87 tests PASS, 0 failures/errors.
+Native iOS build: PENDING.
+Tests cover sibling/semester cache isolation, storage failures, eviction,
+unknown send outcome persistence, recipient/reply mailbox validation,
+HTTP/HTML/error acknowledgement rejection, notification detail history,
+legacy baseline migration and whitespace-only changes.
+No live mail sent. Live school API sending and iPhone deep-link UI unverified.
+No server push implemented. Local history saved before banner scheduling;
+failed banner scheduling leaves history available without automatic retry.
+
+Previous release evidence:
 Buda iOS 0.8.0 (build 9)
 Common Kotlin/JVM tests: 67 PASS; final common compilation/tests: PASS in CI.
 Native iOS build and packaging: PASS

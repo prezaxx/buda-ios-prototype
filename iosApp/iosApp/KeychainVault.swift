@@ -24,7 +24,7 @@ final class KeychainVault: NSObject, SessionVault {
     func write(value: String) -> Bool {
         guard let data = value.data(using: .utf8) else { return false }
         let attrs: [String: Any] = [kSecValueData as String: data,
-          kSecAttrAccessible as String: UserDefaults.standard.bool(forKey: "gradeChecksEnabled") ? kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly : kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
+          kSecAttrAccessible as String: (account == "diary-session-v1" || account == "grade-baseline-v1") && UserDefaults.standard.bool(forKey: "gradeChecksEnabled") ? kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly : kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
         let status = SecItemUpdate(query as CFDictionary, attrs as CFDictionary)
         if status == errSecSuccess { return true }
         guard status == errSecItemNotFound else { return false }

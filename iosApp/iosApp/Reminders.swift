@@ -47,6 +47,17 @@ private struct PlannedReminder: Identifiable {
     }
 }
 @MainActor struct ReminderListView: View {
+    @Environment(\.dismiss) private var dismiss
+    init(title: String = "", date: String = "") {
+        _title = State(initialValue: String(title.prefix(100)))
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let due = formatter.date(from: date)
+        let evening = due.flatMap { Calendar.current.date(byAdding: .day, value: -1, to: $0) }.flatMap { Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: $0) }
+        _date = State(initialValue: evening.flatMap { $0.timeIntervalSinceNow > 60 ? $0 : nil } ?? Date().addingTimeInterval(3600))
+    }
     @StateObject private var store = ReminderStore()
     @State private var title = ""
     @State private var date = Date().addingTimeInterval(3600)
@@ -73,6 +84,6 @@ private struct PlannedReminder: Identifiable {
             Section {
                 Text("Przypomnienia są zapisane w systemie tego iPhone’a. Wylogowanie lub wyłączenie zapamiętywania sesji usuwa je. Lista pokazuje tylko przyszłe przypomnienia; dostarczone znajdziesz w centrum powiadomień.").font(.footnote)
             }
-        }.navigationTitle("Moje przypomnienia").onAppear { store.refresh() }
+        }.navigationTitle("Moje przypomnienia").toolbar { ToolbarItem(placement: .confirmationAction) { Button("Gotowe") { dismiss() } } }.onAppear { store.refresh() }
     }
 }

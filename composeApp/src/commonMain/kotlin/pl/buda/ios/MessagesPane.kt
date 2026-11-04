@@ -11,12 +11,14 @@ import androidx.compose.ui.unit.dp
 
 @Composable fun MessagesPane(model:MessagesController,modifier:Modifier=Modifier) {
  val state by model.state.collectAsState()
+ if(state.composing) { MailComposer(model,state,modifier);return }
  var query by remember(state.box,state.folder) { mutableStateOf("") }
  var unreadOnly by remember(state.box,state.folder) { mutableStateOf(false) }
  val visible=state.items.filter { (state.folder!=MailFolder.INBOX || !unreadOnly || !it.read) && matchesSearch(query,it.title,it.sender,it.date) }
  val uri=LocalUriHandler.current
  var linkError by remember(state.detail?.key) { mutableStateOf(false) }
  LazyColumn(modifier,verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=24.dp)) {
+  state.info?.let { item { Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.primary) } }
   if(state.busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
   if(state.box!=null) item {
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -26,6 +28,7 @@ import androidx.compose.ui.unit.dp
     }
     TextButton(onClick={model.chooseAnother()}) { Text("Zmień") }
    }
+   FilledTonalButton(onClick={model.compose()},enabled=!state.busy) { Text("Nowa wiadomość / szkic") }
    if(state.detail!=null) TextButton(onClick={model.backToInbox()}) { Text("‹ Wróć do listy") }
   }
   state.error?.let { message -> item {
@@ -53,6 +56,7 @@ import androidx.compose.ui.unit.dp
       }
      }
     }
+    if(state.folder==MailFolder.INBOX) item { Button(onClick={model.compose(detail.key)},enabled=!state.busy) { Text("Odpowiedz nadawcy") } }
     item { SelectionContainer { Text(detail.text.ifBlank { "Brak treści wiadomości." },Modifier.padding(vertical=8.dp)) } }
     if(detail.attachments.isNotEmpty()) item { Text("Załączniki",style=MaterialTheme.typography.titleSmall) }
     items(detail.attachments) { attachment ->
@@ -91,7 +95,7 @@ import androidx.compose.ui.unit.dp
     if(visible.isEmpty() && state.items.isNotEmpty() && !state.busy) item { Text("Brak wyników w pobranych wiadomościach. Możesz pobrać starsze.") }
     if(state.more) item { Button(onClick={model.more()},enabled=!state.busy,modifier=Modifier.fillMaxWidth()) { Text("Pobierz starsze") } }
     if(state.loaded && !state.busy && state.items.isEmpty() && state.error==null) item { Text("Brak wiadomości w tym folderze.") }
-    item { Text("Odczyt bez zmiany statusu na serwerze. Wysyłanie odpowiedzi nie jest jeszcze dostępne.",style=MaterialTheme.typography.bodySmall) }
+    item { Text("Odczyt bez zmiany statusu na serwerze. Nowe wiadomości wysyłasz po sprawdzeniu odbiorców i potwierdzeniu.",style=MaterialTheme.typography.bodySmall) }
    }
   }
  }

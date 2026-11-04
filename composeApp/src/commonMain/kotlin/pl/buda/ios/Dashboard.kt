@@ -1,8 +1,9 @@
 package pl.buda.ios
+import kotlinx.serialization.Serializable
 import kotlinx.datetime.*
 import kotlinx.coroutines.*
 
-data class DashboardData(val today:LocalDate,val schedule:DiaryResult,val exams:DiaryResult,val homework:DiaryResult)
+@Serializable data class DashboardData(val today:LocalDate,val schedule:DiaryResult,val exams:DiaryResult,val homework:DiaryResult)
 internal suspend fun loadDashboard(today:LocalDate,fetch:suspend(Section,String,String)->DiaryResult):DashboardData=coroutineScope {
  suspend fun load(section:Section,to:LocalDate):DiaryResult=try { fetch(section,today.toString(),to.toString()) }
  catch(e:CancellationException) { throw e }

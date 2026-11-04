@@ -20,14 +20,15 @@ data class ScreenState(
  val busy:Boolean=false,val students:List<Student> = emptyList(),val selected:Int?=null,
  val periodId:Int?=null,val grades:List<GradeRow> = emptyList(),val error:String?=null,
  val section:Section=Section.HOME,val rows:List<DiaryRow> = emptyList(),
- val dashboard:DashboardData?=null,val from:String="",val to:String="",val remember:Boolean=true,val notice:String?=null
+ val cachedAt:String?=null,val dashboard:DashboardData?=null,val from:String="",val to:String="",val remember:Boolean=true,val notice:String?=null
 )
-class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,private val notifications:NotificationControls=NoNotificationControls) {
+class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,private val notifications:NotificationControls=NoNotificationControls,dataVault:SessionVault=MemoryVault()) {
+ val localData=LocalDataStore(dataVault)
  private val client=HttpClient { install(HttpTimeout) { requestTimeoutMillis=45000 } }
  private val mutable=MutableStateFlow(ScreenState())
  val state=mutable.asStateFlow()
  private var job:Job?=null
- val messages=MessagesController(scope,onMailboxChosen={ source,key ->
+ val messages=MessagesController(scope,localData,onMailboxChosen={ source,key ->
   mutable.value=mutable.value.copy(students=mutable.value.students.map {
    if(it.credential.deviceId==source.credential.deviceId && it.account==source.account) it.copy(mailboxKey=key) else it
   })
@@ -44,6 +45,8 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
   } catch(e:Exception) { mutable.value=ScreenState(notice="Nie udało się odczytać zapisanej sesji. Zaloguj się ponownie; hasło nie było zapisywane.") }
  }
  fun remember(enabled:Boolean) {
+  if(!enabled && !localData.clear()) { mutable.value=mutable.value.copy(notice="Nie udało się usunąć kopii offline i szkiców. Spróbuj ponownie.");return }
+  localData.persistent=enabled
   if(!enabled) notifications.clear()
   if(!enabled && !vault.clear()) { mutable.value=mutable.value.copy(notice="Nie udało się usunąć sesji z pęku kluczy.");return }
   mutable.value=mutable.value.copy(remember=enabled,notice=null)
@@ -57,7 +60,8 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
  }
  fun login(email:String,password:String) {
   if(email.isBlank() || password.isBlank()) { mutable.value=mutable.value.copy(error="Wpisz e-mail i hasło.");return }
-  messages.clear();job?.cancel();val remember=mutable.value.remember
+  if(!localData.clear()) { mutable.value=mutable.value.copy(error="Nie udało się wyczyścić poprzednich danych lokalnych.");return }
+  messages.clear(preserveDraft=false);job?.cancel();val remember=mutable.value.remember
   job=scope.launch {
    mutable.value=ScreenState(busy=true,remember=remember)
    val helper=PrometheusLoginHelper(autoAcceptConsent=false)
@@ -84,7 +88,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
   job?.cancel()
   messages.use(student)
   val period=student.account.periods?.firstOrNull { it.current==true } ?: student.account.periods?.lastOrNull()
-  mutable.value=mutable.value.copy(selected=index,periodId=period?.id,section=target,dashboard=null,grades=emptyList(),rows=emptyList(),error=null,busy=false)
+  mutable.value=mutable.value.copy(selected=index,periodId=period?.id,section=target,cachedAt=null,dashboard=null,grades=emptyList(),rows=emptyList(),error=null,busy=false)
   save();refresh()
  }
  fun switchStudent(index:Int) {
@@ -100,7 +104,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
   val today=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
   val from=if(section==Section.SCHEDULE) today.minus(today.dayOfWeek.ordinal,DateTimeUnit.DAY) else today.minus(30,DateTimeUnit.DAY)
   val to=if(section==Section.SCHEDULE) from.plus(6,DateTimeUnit.DAY) else if(section==Section.PRESENCE) today else today.plus(60,DateTimeUnit.DAY)
-  mutable.value=mutable.value.copy(section=section,from=from.toString(),to=to.toString(),grades=emptyList(),rows=emptyList(),error=null)
+  mutable.value=mutable.value.copy(section=section,cachedAt=null,from=from.toString(),to=to.toString(),grades=emptyList(),rows=emptyList(),error=null)
   refresh()
  }
  fun dates(from:String,to:String) {
@@ -118,30 +122,42 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
   val before=mutable.value;val student=before.selected?.let { before.students.getOrNull(it) } ?: return
   job?.cancel()
   if(before.section==Section.MESSAGES) { mutable.value=before.copy(busy=false);messages.refresh();return }
+  val key=screenKey(student,before)
+  val cached=localData.screen(key)
+  fun cachedState(error:String?=null)=before.copy(busy=false,dashboard=cached?.dashboard,grades=cached?.grades.orEmpty(),rows=cached?.rows.orEmpty(),cachedAt=cached?.at,error=error)
   job=scope.launch {
-   mutable.value=before.copy(busy=true,dashboard=null,grades=emptyList(),rows=emptyList(),error=null)
+   mutable.value=cachedState().copy(busy=true)
    try {
     if(before.section==Section.HOME) {
      val today=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
      val data=loadDashboard(today) { section,from,to -> fetchDiary(student.api,student.account,section,before.periodId,from,to) }
-     ensureActive();mutable.value=mutable.value.copy(busy=false,dashboard=data)
+     ensureActive()
+     if(cached!=null && data.schedule.warning!=null && data.exams.warning!=null && data.homework.warning!=null) mutable.value=cachedState("Nie udało się odświeżyć pulpitu. Pokazujemy zapisaną kopię.")
+     else {
+      mutable.value=mutable.value.copy(busy=false,dashboard=data,cachedAt=null)
+      if(data.schedule.warning==null && data.exams.warning==null && data.homework.warning==null) cacheCurrent(key)
+     }
     } else if(before.section==Section.GRADES) {
      val period=before.periodId
      if(period==null) { mutable.value=mutable.value.copy(busy=false,error="Konto nie podało okresu oceniania.");return@launch }
      val grades=loadPages { last -> parseGrades(student.api.getGradePayload(student.account.unit.restUrl,student.account.unit.id,student.account.pupil.id,period,lastId=last,pageSize=500),student.account.pupil.id) }
-     ensureActive();mutable.value=mutable.value.copy(busy=false,grades=grades.sortedByDescending { it.createdAt })
+     ensureActive();mutable.value=mutable.value.copy(busy=false,grades=grades.sortedByDescending { it.createdAt },cachedAt=null);cacheCurrent(key)
     } else {
      val result=fetchDiary(student.api,student.account,before.section,before.periodId,before.from,before.to)
-     ensureActive();mutable.value=mutable.value.copy(busy=false,rows=result.rows,error=result.warning)
+     ensureActive()
+     if(result.warning!=null && result.rows.isEmpty() && cached!=null) mutable.value=cachedState(result.warning)
+     else { mutable.value=mutable.value.copy(busy=false,rows=result.rows,error=result.warning,cachedAt=null);if(result.warning==null) cacheCurrent(key) }
     }
    } catch(e:CancellationException) { throw e }
-     catch(e:Exception) { currentCoroutineContext().ensureActive();mutable.value=mutable.value.copy(busy=false,error=safeError(e,before.section.label)) }
+     catch(e:Exception) { currentCoroutineContext().ensureActive();mutable.value=cachedState(safeError(e,before.section.label)) }
   }
  }
+ private fun cacheCurrent(key:String) { if(!localData.saveScreen(key,savedScreen(mutable.value))) mutable.value=mutable.value.copy(notice="Dane pobrano, ale nie zapisano kopii offline. Sprawdź dostępność pęku kluczy.") }
  fun back() { messages.clear();job?.cancel();mutable.value=mutable.value.copy(selected=null,periodId=null,grades=emptyList(),rows=emptyList(),error=null,busy=false);save() }
  fun logout() {
+  if(!localData.clear()) { mutable.value=mutable.value.copy(notice="Nie udało się usunąć kopii offline i szkiców. Spróbuj ponownie.");return }
   if(!vault.clear()) { mutable.value=mutable.value.copy(notice="Nie udało się usunąć zapisanej sesji. Spróbuj ponownie po odblokowaniu telefonu.");return }
-  notifications.clear();messages.clear();job?.cancel();mutable.value=ScreenState()
+  notifications.clear();messages.clear(preserveDraft=false);job?.cancel();mutable.value=ScreenState()
  }
  fun close() { messages.clear();job?.cancel();client.close() }
 }

@@ -1,4 +1,5 @@
 package pl.buda.ios
+import kotlinx.serialization.Serializable
 import com.fleeksoft.ksoup.Ksoup
 import io.github.szpontium.api.hebe.SzpontHebeCeApi
 import io.github.szpontium.api.hebe.models.Account
@@ -12,10 +13,10 @@ enum class Section(val label:String,val dated:Boolean=false) {
  EXAMS("Sprawdziany",true), HOMEWORK("Zadania",true), NOTES("Uwagi"),
  ANNOUNCEMENTS("Ogłoszenia"), SUMMARY("Średnie i końcowe")
 }
-data class DiaryLink(val title:String,val url:String)
-data class LessonInfo(val start:String,val end:String,val room:String,val cancelled:Boolean)
-data class DiaryRow(val key:String,val title:String,val detail:String,val date:String="",val badge:String="",val links:List<DiaryLink> = emptyList(),val lesson:LessonInfo?=null)
-data class DiaryResult(val rows:List<DiaryRow>,val warning:String?=null)
+@Serializable data class DiaryLink(val title:String,val url:String)
+@Serializable data class LessonInfo(val start:String,val end:String,val room:String,val cancelled:Boolean)
+@Serializable data class DiaryRow(val key:String,val title:String,val detail:String,val date:String="",val badge:String="",val links:List<DiaryLink> = emptyList(),val lesson:LessonInfo?=null)
+@Serializable data class DiaryResult(val rows:List<DiaryRow>,val warning:String?=null)
 class DiaryFormatException:Exception("UnsupportedDiaryFormat")
 internal fun JsonObject.obj(key:String)=this[key] as? JsonObject
 internal fun JsonObject.text(key:String)=(this[key] as? JsonPrimitive)?.contentOrNull.orEmpty()

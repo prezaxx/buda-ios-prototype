@@ -2,6 +2,9 @@ package pl.buda.ios
 
 import com.fleeksoft.ksoup.Ksoup
 import io.github.szpontium.api.prometheus.PrometheusMessagesApi
+import io.github.szpontium.api.prometheus.models.PrometheusSendMessage
+import kotlin.uuid.Uuid
+import kotlin.uuid.ExperimentalUuidApi
 import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -12,7 +15,7 @@ data class MailItem(val key:String,val id:Int,val title:String,val sender:String
 data class MailAttachment(val name:String,val url:String?)
 data class MailDetail(val key:String,val title:String,val sender:String,val recipients:String,val date:String,val text:String,val attachments:List<MailAttachment>)
 enum class MailFolder(val label:String,val endpoint:String) { INBOX("Odebrane","OdebraneSkrzynka"), SENT("Wysłane","WyslaneSkrzynka") }
-data class MailState(val folder:MailFolder=MailFolder.INBOX,val busy:Boolean=false,val boxes:List<Mailbox> = emptyList(),val box:String?=null,val items:List<MailItem> = emptyList(),val detail:MailDetail?=null,val more:Boolean=false,val error:String?=null,val loaded:Boolean=false)
+data class MailState(val composing:Boolean=false,val draft:MailDraft?=null,val recipients:List<MailRecipient> = emptyList(),val info:String?=null,val folder:MailFolder=MailFolder.INBOX,val busy:Boolean=false,val boxes:List<Mailbox> = emptyList(),val box:String?=null,val items:List<MailItem> = emptyList(),val detail:MailDetail?=null,val more:Boolean=false,val error:String?=null,val loaded:Boolean=false)
 class MessageFormatException:Exception("UnsupportedMessageFormat")
 private fun JsonElement.objectRows():List<JsonObject> = (this as? JsonArray ?: throw MessageFormatException()).map { it as? JsonObject ?: throw MessageFormatException() }
 private fun JsonObject.required(key:String)=text(key).ifBlank { throw MessageFormatException() }
@@ -61,14 +64,17 @@ internal fun resolveMailbox(boxes:List<Mailbox>,savedKey:String?,accountKey:Stri
  val expected=name(accountName)
  return if(expected.isBlank()) null else boxes.singleOrNull { name(it.name)==expected }?.key
 }
-class MessagesController(private val scope:CoroutineScope,private val onMailboxChosen:(Student,String)->Unit={ _,_ -> }) {
+class MessagesController(private val scope:CoroutineScope,private val local:LocalDataStore=LocalDataStore(MemoryVault()),private val onMailboxChosen:(Student,String)->Unit={ _,_ -> }) {
  private val mutable=MutableStateFlow(MailState())
  val state=mutable.asStateFlow()
  private var student:Student?=null
  private var api:PrometheusMessagesApi?=null
  private var job:Job?=null
- fun cancel() { job?.cancel();mutable.value=mutable.value.copy(busy=false) }
- fun clear() { cancel();api?.close();api=null;student=null;mutable.value=MailState() }
+ private var draftSave:Job?=null
+ private fun draftKey():String? { val pupil=student ?: return null;val box=mutable.value.box ?: return null;return scopeKey(listOf(studentKey(pupil),box)) }
+ private fun flushDraft():Boolean { draftSave?.cancel();val draft=mutable.value.draft ?: return true;val key=draftKey() ?: return false;return local.saveDraft(key,draft) }
+ fun cancel(preserveDraft:Boolean=true) { if(preserveDraft && !flushDraft()) mutable.value=mutable.value.copy(info="Nie zapisano szkicu na dysku. Pozostaje w pamięci tej sesji.");draftSave?.cancel();job?.cancel();mutable.value=mutable.value.copy(busy=false) }
+ fun clear(preserveDraft:Boolean=true) { cancel(preserveDraft);api?.close();api=null;student=null;mutable.value=MailState() }
  fun use(value:Student) { clear();student=value }
  private fun client():PrometheusMessagesApi {
   api?.let { return it }
@@ -85,7 +91,7 @@ class MessagesController(private val scope:CoroutineScope,private val onMailboxC
     ensureActive()
     val code=(e as? io.github.szpontium.api.prometheus.MessagesAccessException)?.code ?: e::class.simpleName.orEmpty()
     api?.close();api=null
-    mutable.value=mutable.value.copy(busy=false,error="Nie udało się pobrać wiadomości. Kod: $code. Ponów pobieranie. Jeśli błąd wraca, podaj ten kod — nie zawiera danych logowania. Oceny pozostają dostępne.")
+    mutable.value=mutable.value.copy(busy=false,error=if(mutable.value.draft?.uncertain==true) "Wynik wysłania jest nieznany ($code). Sprawdź folder Wysłane przed kolejną próbą. Szkic zachowano; nie ponawiamy automatycznie." else "Nie udało się pobrać wiadomości. Kod: $code. Ponów pobieranie. Jeśli błąd wraca, podaj ten kod — nie zawiera danych logowania. Oceny pozostają dostępne.")
    }
   }
  }
@@ -107,16 +113,16 @@ class MessagesController(private val scope:CoroutineScope,private val onMailboxC
  fun choose(key:String) {
   if(mutable.value.boxes.none { it.key==key }) return
   student?.let { onMailboxChosen(it,key);student=it.copy(mailboxKey=key) }
-  cancel();mutable.value=mutable.value.copy(box=key,items=emptyList(),detail=null,more=false,loaded=false,error=null)
+  cancel();mutable.value=mutable.value.copy(composing=false,draft=null,recipients=emptyList(),box=key,items=emptyList(),detail=null,more=false,loaded=false,error=null)
   inbox(key,false)
  }
  fun folder(value:MailFolder) {
   val box=mutable.value.box ?: return
   if(value==mutable.value.folder) return
-  cancel();mutable.value=mutable.value.copy(folder=value,items=emptyList(),detail=null,more=false,loaded=false,error=null)
+  cancel();mutable.value=mutable.value.copy(composing=false,draft=null,recipients=emptyList(),folder=value,items=emptyList(),detail=null,more=false,loaded=false,error=null)
   inbox(box,false)
  }
- fun chooseAnother() { cancel();mutable.value=mutable.value.copy(box=null,items=emptyList(),detail=null,more=false,error=null) }
+ fun chooseAnother() { cancel();mutable.value=mutable.value.copy(composing=false,draft=null,recipients=emptyList(),box=null,items=emptyList(),detail=null,more=false,error=null) }
  fun backToInbox() { cancel();mutable.value=mutable.value.copy(detail=null,error=null) }
  fun more() { if(!mutable.value.busy && mutable.value.more) mutable.value.box?.let { inbox(it,true) } }
  private fun inbox(box:String,append:Boolean) { request { loadInbox(box,append) } }
@@ -135,4 +141,52 @@ class MessagesController(private val scope:CoroutineScope,private val onMailboxC
    ensureActive();mutable.value=mutable.value.copy(detail=detail)
   }
  }
+ @OptIn(ExperimentalUuidApi::class)
+ fun compose(replyKey:String?=null) {
+  val key=draftKey() ?: return
+  if(mutable.value.busy) return
+  val old=mutable.value.draft ?: local.draft(key)
+  val draft=old ?: MailDraft(Uuid.random().toString(),Uuid.random().toString(),replyTo=replyKey)
+  mutable.value=mutable.value.copy(composing=true,draft=draft,error=null,info=if(old!=null && replyKey!=null) "Otworzono istniejący szkic. Usuń go, aby rozpocząć inną odpowiedź." else null)
+  request {
+   val box=mutable.value.box ?: return@request
+   var recipients=parseRecipients(client().readPayload("Pracownicy",mapOf("globalKeySkrzynka" to box)))
+   if(draft.replyTo!=null) {
+    val reply=parseReplyRecipient(client().readPayload("WiadomoscOdpowiedzPrzekaz",mapOf("apiGlobalKey" to draft.replyTo)),draft.replyTo,box)
+    recipients=(recipients+reply.second).distinctBy { it.key }
+    if(draft.title.isBlank() && draft.recipients.isEmpty()) mutable.value=mutable.value.copy(draft=draft.copy(title="Re: "+reply.first,recipients=listOf(reply.second)))
+   }
+   ensureActive();mutable.value=mutable.value.copy(recipients=recipients)
+   if(!flushDraft()) mutable.value=mutable.value.copy(info="Nie udało się zapisać szkicu. Nie zamykaj aplikacji.")
+  }
+ }
+ fun editDraft(title:String?=null,text:String?=null,recipient:MailRecipient?=null) {
+  val current=mutable.value.draft ?: return
+  if(mutable.value.busy || current.uncertain) return
+  val recipients=if(recipient==null) current.recipients else if(current.recipients.any { it.key==recipient.key }) current.recipients.filter { it.key!=recipient.key } else if(mutable.value.recipients.any { it==recipient } && current.recipients.size<30) current.recipients+recipient else current.recipients
+  mutable.value=mutable.value.copy(draft=current.copy(title=(title ?: current.title).take(200),text=(text ?: current.text).take(12000),recipients=recipients))
+  draftSave?.cancel();draftSave=scope.launch { delay(500);if(!flushDraft()) mutable.value=mutable.value.copy(info="Nie zapisano szkicu na dysku.") }
+ }
+ fun closeComposer() { val ok=flushDraft();mutable.value=mutable.value.copy(composing=false,info=if(ok) "Szkic zachowano." else "Nie zapisano szkicu na dysku; pozostaje w pamięci tej sesji.") }
+ fun discardDraft() {
+  if(mutable.value.busy) return
+  draftSave?.cancel();val key=draftKey() ?: return
+  if(!local.deleteDraft(key)) { mutable.value=mutable.value.copy(error="Nie udało się usunąć szkicu.");return }
+  mutable.value=mutable.value.copy(composing=false,draft=null,recipients=emptyList(),error=null,info="Szkic usunięto.")
+ }
+ fun sendDraft() {
+  val state=mutable.value;val draft=state.draft ?: return;val box=state.box ?: return;val key=draftKey() ?: return
+  if(state.busy || !canSendDraft(draft,state.recipients)) return
+  // Persist unknown outcome before POST, so interruption never causes an automatic resend.
+  val pending=draft.copy(uncertain=true)
+  if(!local.saveDraft(key,pending)) { mutable.value=state.copy(error="Nie udało się zabezpieczyć szkicu przed wysłaniem. Spróbuj po odblokowaniu telefonu.");return }
+  draftSave?.cancel();mutable.value=state.copy(draft=pending)
+  request {
+   client().sendMessage(PrometheusSendMessage(draft.id,draft.thread,box,draft.recipients.map { it.key },draft.title.trim(),draft.text))
+   ensureActive()
+   val removed=local.deleteDraft(key)
+   mutable.value=mutable.value.copy(composing=false,draft=null,recipients=emptyList(),info=if(removed) "Serwer potwierdził przyjęcie wiadomości. Możesz sprawdzić folder Wysłane." else "Serwer przyjął wiadomość, ale nie usunięto szkicu. Nie wysyłaj go ponownie.")
+  }
+ }
+
 }

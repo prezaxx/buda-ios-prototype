@@ -1,4 +1,4 @@
-BUDA iOS 0.8.0
+BUDA iOS 0.9.0
 
 Zakres: logowanie eduVULCAN, wybor ucznia i semestru, oceny,
 plan z zastepstwami i dodatkowymi zajeciami, frekwencja, sprawdziany,
@@ -133,3 +133,34 @@ Nowe w 0.8 (build 9):
 Test pod blokada potwierdza prezentacje, nie wykrycie nowej oceny w tle.
 Nie podlaczono serwera eduVULCAN ani APNs. iOS steruje czasem synchronizacji.
 Przypomnienia sa lokalne i jednorazowe; zalezne od zgod i trybu skupienia.
+
+Nowe w 0.9 (build 10):
+- Historia ostatnich 100 zmian ocen: uczen, semestr, przedmiot, wartosc przed/po,
+  opis i komentarz. Dotkniecie banera ocen otwiera historie. Dostep tez w Dzwonku.
+  Szczegoly sa zapisywane przed zleceniem banera. Gdy iOS nie przyjmie banera,
+  historia pozostaje dostepna; nie ponawiamy go automatycznie.
+  Zmiany samych spacji/nowych linii nie wywoluja powiadomienia.
+  Stare banery z 0.7/0.8 nie zawieraly historii i nie mozna ich odtworzyc.
+- Skrzynka: nowa wiadomosc, lista adresatow z API, wybor wielu odbiorcow,
+  potwierdzenie nadawcy/odbiorcow/tematu przed POST. Brak testowych wysylek.
+  Odpowiedz to nowa wiadomosc do zweryfikowanego nadawcy, bez watkowania,
+  reply-all i zalacznikow. Dostepnosc zalezy od uprawnien/sesji po stronie API.
+- Jeden lokalny szkic na ucznia/skrzynke. Zapis po 500 ms od edycji i przy
+  zamknieciu. Gdy wynik POST nieznany, szkic pozostaje zablokowany: sprawdz
+  Wyslane przed usunieciem szkicu i ewentualna nowa wysylka. Bez auto-retry.
+  Poprawne HTTP z pustym/null body lub rozpoznanym ACK oznacza przyjecie
+  zadania przez serwer, nie potwierdzenie odczytu przez nauczyciela.
+- Offline: ostatnie poprawne widoki ocen, planu, zadan, sprawdzianow i pozostalych
+  sekcji dziennika (poza wiadomosciami). Klucz obejmuje ucznia, profil, semestr,
+  sekcje i zakres dat; zapis do 20 widokow, calosc limitowana do 750 kB.
+  Kopia pokazuje czas UTC, rowniez podczas odswiezania. Czastkowe bledy nie
+  nadpisuja ostatniego pelnego zapisu. Inny zakres dat moze nie miec kopii.
+- Kopie i szkice w osobnym Keychain ThisDeviceOnly/WhenUnlocked; wymagaja
+  Zapamietaj sesje do trwalego zapisu. Bez tego tylko pamiec bieżącej sesji.
+  Wylogowanie/wylaczenie zapamietywania usuwa dane lokalne.
+- Przypomnij mi przy zadaniu/sprawdzianie (takze na pulpicie): formularz z
+  tytulem i proponowana godzina 18:00 dzien przed terminem, jesli przyszla.
+  Inaczej propozycja za godzine. Uzytkownik wybiera i zatwierdza termin.
+Wysylanie na prawdziwym koncie i nawigacja po dotknieciu banera wymagaja
+sprawdzenia na iPhonie. Testy nie wysylaly wiadomosci do szkoly.
+Powiadomienia pozostaja lokalne; nie uruchomiono APNs ani integracji push VULCAN.

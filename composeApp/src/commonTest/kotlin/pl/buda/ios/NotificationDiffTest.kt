@@ -46,4 +46,19 @@ class NotificationDiffTest {
    assertEquals(teacher,gradePalette("6",dark,0x00FF00))
   }
  }
+ @Test fun historyNamesTheSiblingAndExplainsCommentOnlyChange() {
+  val old=GradeBaseline(mapOf("B" to mapOf("1" to grade("4"))))
+  val changed=grade("4").copy(comment="Poprawa")
+  val (next,count)=mergeGradeBaseline(old,listOf(GradeObservation("B",mapOf("1" to changed),"Drugie dziecko","Semestr 1")),"2026-11-04T10:00:00Z")
+  assertEquals(1,count);val event=next.history.single();assertEquals("Drugie dziecko",event.student);assertEquals("4",event.before!!.content);assertEquals("Poprawa",event.after.comment)
+ }
+ @Test fun whitespaceOnlyChangesDoNotNotify() {
+  val old=GradeBaseline(mapOf("A" to mapOf("1" to grade("4"))))
+  assertEquals(0,mergeGradeBaseline(old,listOf(GradeObservation("A",mapOf("1" to grade(" 4 ").copy(description="  Test\n"))))).second)
+ }
+ @Test fun oldBaselineMigratesWithoutInventedHistory() {
+  val baseline=sessionJson.decodeFromString<GradeBaseline>("""{"accounts":{}}""")
+  assertTrue(baseline.history.isEmpty())
+ }
+
 }

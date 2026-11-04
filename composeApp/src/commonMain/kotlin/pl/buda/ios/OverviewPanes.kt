@@ -22,7 +22,7 @@ import kotlin.time.Clock
  LaunchedEffect(Unit) { while(true) { delay(30000);now=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) } }
  return now
 }
-@Composable internal fun DashboardPane(state:ScreenState,modifier:Modifier,onSection:(Section)->Unit) {
+@Composable internal fun DashboardPane(state:ScreenState,modifier:Modifier,onSection:(Section)->Unit,onReminder:(DiaryRow)->Unit={}) {
  val now=liveClock();val data=state.dashboard
  LazyColumn(modifier,verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=24.dp)) {
   item {
@@ -66,6 +66,7 @@ import kotlin.time.Clock
        Text(row.date.take(10),style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
        Text(row.title,style=MaterialTheme.typography.titleMedium)
        Text(row.detail,maxLines=3,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+       TextButton(onClick={onReminder(row)}) { Text("Przypomnij mi") }
       }
      }
     }

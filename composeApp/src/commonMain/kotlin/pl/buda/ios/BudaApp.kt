@@ -13,8 +13,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
-@Composable fun BudaApp(vault:SessionVault,notifications:NotificationControls=NoNotificationControls) {
- val scope=rememberCoroutineScope();val model=remember(vault,notifications) { Prototype(scope,vault,notifications) }
+@Composable fun BudaApp(vault:SessionVault,notifications:NotificationControls=NoNotificationControls,dataVault:SessionVault?=null) {
+ val localVault=remember(dataVault) { dataVault ?: MemoryVault() }
+ val scope=rememberCoroutineScope();val model=remember(vault,notifications,localVault) { Prototype(scope,vault,notifications,localVault) }
  DisposableEffect(model) { onDispose { model.close() } }
  val state by model.state.collectAsState()
  var email by remember { mutableStateOf("") };var password by remember { mutableStateOf("") }
@@ -88,8 +89,9 @@ import androidx.compose.ui.unit.dp
       }
      }
      Row { TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Odśwież") };TextButton(onClick={logout=true}) { Text("Wyloguj") } }
+     state.cachedAt?.let { Text("Zapisana kopia: "+it.take(19).replace("T"," ")+" UTC"+(if(state.busy) " · odświeżam…" else ""),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.tertiary) }
      if(state.section==Section.HOME) {
-      DashboardPane(state,Modifier.weight(1f),onSection={model.section(it)})
+      DashboardPane(state,Modifier.weight(1f),onSection={model.section(it)},onReminder={notifications.planReminder(it.title,it.date.take(10))})
      } else if(state.section==Section.SCHEDULE) {
       key(state.selected) { SchedulePane(state,Modifier.weight(1f),onCurrentWeek={model.section(Section.SCHEDULE)}) }
      } else if(state.section==Section.GRADES) {
@@ -107,7 +109,7 @@ import androidx.compose.ui.unit.dp
       if(linkError) item { Text("Nie udało się otworzyć załącznika.",color=MaterialTheme.colorScheme.error) }
       if(!state.busy && state.error==null && shownRows.isEmpty()) item { Text(if(query.isBlank()) "Brak wpisów w wybranym zakresie." else "Brak wyników wyszukiwania.") }
       items(shownRows,key={it.key}) { row ->
-       DiaryEntryCard(row) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } }
+       DiaryEntryCard(row,remind=if(state.section in listOf(Section.EXAMS,Section.HOMEWORK)) ({notifications.planReminder(row.title,row.date.take(10))}) else null) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } }
       }
      }
      }
@@ -118,13 +120,14 @@ import androidx.compose.ui.unit.dp
  }
 }
 
-@Composable internal fun DiaryEntryCard(row:DiaryRow,open:(DiaryLink)->Unit) {
+@Composable internal fun DiaryEntryCard(row:DiaryRow,remind:(()->Unit)?=null,open:(DiaryLink)->Unit) {
  Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
   Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
    if(row.badge.isNotBlank()) Text(row.badge,color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelLarge)
    Text(row.title,style=MaterialTheme.typography.titleMedium)
    if(row.date.isNotBlank()) Text(row.date.take(10),style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.secondary)
    Text(row.detail)
+   if(remind!=null) FilledTonalButton(onClick=remind) { Text("Przypomnij mi") }
    row.links.forEach { link -> TextButton(onClick={open(link)}) { Text(link.title) } }
   }
  }

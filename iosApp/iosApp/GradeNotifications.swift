@@ -161,12 +161,13 @@ private final class PollCallback: NSObject, GradePollCallback {
             }
             @MainActor func save(_ delivered: Bool) {
                 guard self.running, self.generation == token else { return }
-                guard delivered else { self.status = "iOS nie przyjął powiadomienia. Punkt odniesienia nie został zmieniony."; self.finish(false); return }
-                guard self.baseline.write(value: result.snapshot) else { self.status = "Nie udało się zapisać historii porównań w pęku kluczy."; self.finish(false); return }
+                guard delivered else { self.status = "iOS nie przyjął banera. Szczegóły zmiany są zapisane w Historii zmian ocen."; self.finish(false); return }
+
                 self.lastCheck = Date()
                 self.status = "Sprawdzono kont: \(result.accounts). Zmiany ocen: \(result.changes). Błędy kont: \(result.failures). Ostatnio: \(Date().formatted(date: .omitted, time: .shortened))."
                 self.finish(result.failures == 0)
             }
+            guard self.baseline.write(value: result.snapshot) else { self.status = "Nie udało się zapisać szczegółów zmiany. Nie wysłano banera."; self.finish(false); return }
             if result.changes == 0 { save(true); return }
             self.post(id: "grades-" + UUID().uuidString, title: "Buda — zmiany ocen", body: "Nowe lub zmienione oceny: \(result.changes). Otwórz aplikację, aby zobaczyć szczegóły.") { ok in DispatchQueue.main.async { save(ok) } }
         } })
@@ -194,6 +195,12 @@ private final class PollCallback: NSObject, GradePollCallback {
             }
         }
     }
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        if response.notification.request.identifier.hasPrefix("grades-") {
+            DispatchQueue.main.async { NotificationHistoryRoute.shared.open = true }
+        }
+        completionHandler()
+    }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .list, .sound])
     }
@@ -208,6 +215,14 @@ final class NativeNotificationControls: NSObject, NotificationControls {
             presenter?.present(UIHostingController(rootView: NotificationSettingsView()), animated: true)
         }
     }
+    func planReminder(title: String, date: String) {
+        DispatchQueue.main.async {
+            let root = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }.first { $0.isKeyWindow }?.rootViewController
+            var presenter = root
+            while let presented = presenter?.presentedViewController { presenter = presented }
+            presenter?.present(UIHostingController(rootView: NavigationStack { ReminderListView(title: title, date: date) }), animated: true)
+        }
+    }
     func clear_() { DispatchQueue.main.async { GradeNotificationService.shared.clear() } }
 }
 @MainActor private struct NotificationSettingsView: View {
@@ -217,6 +232,10 @@ final class NativeNotificationControls: NSObject, NotificationControls {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Historia") {
+                    NavigationLink("Historia zmian ocen") { GradeHistoryView() }
+                    Text("Szczegóły nowych alertów: uczeń, przedmiot, ocena i zmieniony opis lub komentarz.").font(.footnote)
+                }
                 Section("Powiadomienia o ocenach") {
                     Toggle("Włącz lokalne powiadomienia", isOn: Binding(get: { service.enabled }, set: { service.setEnabled($0) }))
                     Text("Sprawdzamy oceny zapisanych uczniów. Pierwsze pobranie zapisuje punkt odniesienia bez wysyłania starych ocen jako nowych.")
