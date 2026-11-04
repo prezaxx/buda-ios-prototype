@@ -34,16 +34,12 @@ import kotlin.time.Clock
     }
    }
   }
-  item {
-   Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-    QuickTile("Plan lekcji","Dni i godziny",Modifier.weight(1f)) { onSection(Section.SCHEDULE) }
-    QuickTile("Oceny","Według przedmiotu",Modifier.weight(1f)) { onSection(Section.GRADES) }
-   }
-  }
-  item {
-   Row(horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-    QuickTile("Wiadomości","Skrzynka ucznia",Modifier.weight(1f)) { onSection(Section.MESSAGES) }
-    QuickTile("Frekwencja","Obecności i wpisy",Modifier.weight(1f)) { onSection(Section.PRESENCE) }
+  if(data!=null) item {
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+    val end=data.today.plus(6,DateTimeUnit.DAY)
+    DashboardCount("Lekcje dziś",if(data.schedule.warning==null) upcomingRows(data.schedule.rows,data.today,data.today).count { it.lesson?.cancelled!=true }.toString() else "—",Modifier.weight(1f)) { onSection(Section.SCHEDULE) }
+    DashboardCount("Sprawdziany · 7 dni",if(data.exams.warning==null) upcomingRows(data.exams.rows,data.today,end).size.toString() else "—",Modifier.weight(1f)) { onSection(Section.EXAMS) }
+    DashboardCount("Zadania · 7 dni",if(data.homework.warning==null) upcomingRows(data.homework.rows,data.today,end).size.toString() else "—",Modifier.weight(1f)) { onSection(Section.HOMEWORK) }
    }
   }
   state.error?.let { item { Text(it,color=MaterialTheme.colorScheme.error) } }
@@ -79,11 +75,11 @@ import kotlin.time.Clock
   } else if(state.busy) item { Text("Pobieram Twój dzień…",style=MaterialTheme.typography.bodyMedium) }
  }
 }
-@Composable private fun QuickTile(title:String,subtitle:String,modifier:Modifier,onClick:()->Unit) {
+@Composable private fun DashboardCount(title:String,count:String,modifier:Modifier,onClick:()->Unit) {
  Card(onClick=onClick,modifier=modifier,colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
-  Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-   Text(title,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary)
-   Text(subtitle,style=MaterialTheme.typography.bodySmall)
+  Column(Modifier.padding(12.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+   Text(count,style=MaterialTheme.typography.headlineMedium,color=MaterialTheme.colorScheme.primary)
+   Text(title,style=MaterialTheme.typography.labelSmall)
   }
  }
 }

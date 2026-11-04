@@ -15,7 +15,7 @@ struct iOSApp: App {
         WindowGroup { ContentView() }
             .onChange(of: phase) { value in
                 if value == .active { GradeNotificationService.shared.becameActive() }
-                else { GradeNotificationService.shared.leftForeground() }
+                else if value == .background { GradeNotificationService.shared.leftForeground() }
             }
     }
 }

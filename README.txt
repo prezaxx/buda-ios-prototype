@@ -114,3 +114,22 @@ To NIE jest wdrozenie APNs push. Brak nadawcy APNs i podpisu z odpowiednim
 uprawnieniem. Test banera sprawdza lokalne wyswietlanie, nie prace w tle.
 Wersja nie dodaje jeszcze powiadomien o wiadomosciach i pozostalych wpisach.
 Porownanie Etny z Buda0.6: ETNA-AUDIT.txt. Nie mamy pelnej zgodnosci funkcji.
+
+Nowe w 0.8 (build 9):
+- Dolna nawigacja Start / Plan / Oceny / Skrzynka / Wiecej, autorskie ikony,
+  nowa paleta indygo i jasne/ciemne karty. Kolory nauczycieli bez zmian.
+- Pulpit z licznikami lekcji dzis (bez odwolanych) i terminow na 7 dni;
+  blad sekcji pokazuje kreske zamiast mylacego zera.
+- Dzwonek: niezalezny test lokalnego banera teraz lub za 15 sekund.
+  Do testu nie trzeba zapisanej sesji ani wlaczonych sprawdzen ocen.
+- Diagnostyka zgody, alertow, dzwieku, odswiezania w tle, oszczedzania
+  energii i dostepnosci sesji; zapamietany ostatni wynik i uruchomienie tla.
+- Moje przypomnienia: wlasny tytul, data/godzina, lista przyszlych i usuwanie.
+  Tytul na blokadzie domyslnie ukryty. Dane sa w lokalnym systemie powiadomien.
+  Wylogowanie/wylaczenie zapamietywania usuwa przypomnienia. Wylaczenie
+  samych sprawdzen ocen zachowuje wlasne przypomnienia.
+- Przejscie aplikacji w stan inactive (np. dialog systemowy) nie przerywa
+  automatycznie sprawdzania; przerwanie po przejsciu w tlo jest opisane.
+Test pod blokada potwierdza prezentacje, nie wykrycie nowej oceny w tle.
+Nie podlaczono serwera eduVULCAN ani APNs. iOS steruje czasem synchronizacji.
+Przypomnienia sa lokalne i jednorazowe; zalezne od zgod i trybu skupienia.

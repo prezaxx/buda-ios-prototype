@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
     Surface(Modifier.fillMaxWidth().padding(top=8.dp),shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.primaryContainer) {
      Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),horizontalArrangement=Arrangement.SpaceBetween) {
       Column(Modifier.weight(1f)) { Text("Buda",style=MaterialTheme.typography.headlineMedium);Text("Twój szkolny dzień",style=MaterialTheme.typography.labelMedium) }
-      TextButton(onClick={notifications.showSettings()}) { Text("Powiadomienia") }
+      TextButton(onClick={notifications.showSettings()}) { Text("Dzwonek") }
      }
     }
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -63,9 +63,7 @@ import androidx.compose.ui.unit.dp
        }
       }
      }
-     Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-      Section.entries.forEach { section -> FilterChip(selected=state.section==section,onClick={model.section(section)},label={Text(section.label)}) }
-     }
+     Text(state.section.label,style=MaterialTheme.typography.headlineSmall)
      if(state.section in listOf(Section.GRADES,Section.SUMMARY)) {
       var expanded by remember { mutableStateOf(false) }
       Box {
@@ -114,6 +112,7 @@ import androidx.compose.ui.unit.dp
      }
      }
     }
+    if(state.selected!=null && state.students.isNotEmpty()) BudaNavigation(state.section) { model.section(it) }
    }
   }
  }
