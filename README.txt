@@ -1,4 +1,4 @@
-BUDA iOS 0.7.0
+BUDA iOS 0.8.0
 
 Zakres: logowanie eduVULCAN, wybor ucznia i semestru, oceny,
 plan z zastepstwami i dodatkowymi zajeciami, frekwencja, sprawdziany,

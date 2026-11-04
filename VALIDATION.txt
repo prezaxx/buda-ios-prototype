@@ -1,6 +1,10 @@
 Buda iOS 0.8.0 (build 9)
-Common compilation/navigation and 67 existing tests: PASS before final dashboard edit.
-Final common checks and native build: PENDING in CI.
+Common Kotlin/JVM tests: 67 PASS; final common compilation/tests: PASS in CI.
+Native iOS build and packaging: PASS
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/41792569462
+Application source commit: cf092a7
+IPA CRC/version/build/bundle/executable/background configuration: PASS
+IPA SHA256: b24b054bdd4ee31693097c78aa61405b5f49549839eb475d640a1a778f367bf2
 New Swift reminder/diagnostic flows require live iPhone verification.
 No claim of APNs delivery, eduVULCAN push reuse or full Etna parity.
 
