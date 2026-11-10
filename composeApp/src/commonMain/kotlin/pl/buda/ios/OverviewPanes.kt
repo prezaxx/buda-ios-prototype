@@ -22,16 +22,22 @@ import kotlin.time.Clock
  LaunchedEffect(Unit) { while(true) { delay(30000);now=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) } }
  return now
 }
-@Composable internal fun DashboardPane(state:ScreenState,modifier:Modifier,onSection:(Section)->Unit,onReminder:(DiaryRow)->Unit={}) {
+@Composable internal fun DashboardPane(state:ScreenState,modifier:Modifier,onSection:(Section)->Unit,onReminder:(DiaryRow)->Unit={},onHistory:()->Unit={},onPlanReminder:()->Unit={}) {
  val now=liveClock();val data=state.dashboard
  LazyColumn(modifier,verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=24.dp)) {
   item {
    Surface(shape=MaterialTheme.shapes.large) {
     Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primaryContainer,MaterialTheme.colorScheme.secondaryContainer))).padding(22.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-     Text("TWÓJ DZIEŃ",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
+     Text(if(now.hour<18) "DZIEŃ DOBRY" else "DOBRY WIECZÓR",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
      Text(dayTitle(data?.today ?: now.date),style=MaterialTheme.typography.headlineSmall)
-     Text("Plan, zadania i sprawdziany w jednym miejscu.",style=MaterialTheme.typography.bodyMedium)
+     Text("Sprawdź plan i zaplanuj to, co przed Tobą.",style=MaterialTheme.typography.bodyMedium)
     }
+   }
+  }
+  item { DashboardShortcuts(onHistory,onPlanReminder) }
+  if(data!=null && data.today==now.date && data.schedule.warning==null) {
+   lessonSpotlight(data.schedule.rows,now)?.let { spotlight ->
+    item { LessonSpotlightCard(spotlight) { onSection(Section.SCHEDULE) } }
    }
   }
   if(data!=null) item {

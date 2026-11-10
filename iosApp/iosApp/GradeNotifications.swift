@@ -220,6 +220,23 @@ private final class PollCallback: NSObject, GradePollCallback {
 }
 
 final class NativeNotificationControls: NSObject, NotificationControls {
+    func appVersion() -> String { BudaBuild.version }
+    func showAbout() {
+        DispatchQueue.main.async { Self.present(NavigationStack { AboutView() }) }
+    }
+    func showHistory() {
+        DispatchQueue.main.async {
+            NotificationHistoryRoute.shared.batch = nil
+            Self.present(NavigationStack { GradeHistoryView() })
+        }
+    }
+    @MainActor private static func present<V: View>(_ view: V) {
+        let root = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }.first { $0.isKeyWindow }?.rootViewController
+        var presenter = root
+        while let presented = presenter?.presentedViewController { presenter = presented }
+        presenter?.present(UIHostingController(rootView: view), animated: true)
+    }
+
     func showSettings() {
         DispatchQueue.main.async {
             let root = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }.first { $0.isKeyWindow }?.rootViewController

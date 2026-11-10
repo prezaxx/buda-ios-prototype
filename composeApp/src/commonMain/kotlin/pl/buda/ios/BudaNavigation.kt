@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -21,7 +22,7 @@ import androidx.compose.ui.unit.dp
    }
   }
  },confirmButton={TextButton(onClick={more=false}){Text("Zamknij")}})
- NavigationBar(containerColor=MaterialTheme.colorScheme.surface,tonalElevation=0.dp,windowInsets=WindowInsets(0,0,0,0)) {
+ NavigationBar(modifier=Modifier.padding(bottom=4.dp).clip(MaterialTheme.shapes.large),containerColor=MaterialTheme.colorScheme.surface,tonalElevation=0.dp,windowInsets=WindowInsets(0,0,0,0)) {
   (main+listOf(null)).forEachIndexed { index,section ->
    val label=when(section) { Section.SCHEDULE->"Plan";Section.MESSAGES->"Skrzynka";null->"Więcej";else->section.label }
    NavigationBarItem(selected=if(section==null) selected !in main else selected==section,

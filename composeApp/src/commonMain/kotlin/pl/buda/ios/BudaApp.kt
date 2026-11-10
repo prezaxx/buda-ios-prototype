@@ -24,12 +24,7 @@ import androidx.compose.ui.unit.dp
   if(logout) AlertDialog(onDismissRequest={logout=false},title={Text("Wylogować?")},text={Text("Usuniemy zapisaną sesję z tego iPhone’a.")},confirmButton={TextButton(onClick={logout=false;model.logout()}){Text("Wyloguj")}},dismissButton={TextButton(onClick={logout=false}){Text("Anuluj")}})
   Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-    Surface(Modifier.fillMaxWidth().padding(top=8.dp),shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.primaryContainer) {
-     Row(Modifier.padding(horizontal=18.dp,vertical=12.dp),horizontalArrangement=Arrangement.SpaceBetween) {
-      Column(Modifier.weight(1f)) { Text("Buda",style=MaterialTheme.typography.headlineMedium);Text("Twój szkolny dzień",style=MaterialTheme.typography.labelMedium) }
-      TextButton(onClick={notifications.showSettings()}) { Text("Dzwonek") }
-     }
-    }
+    BudaHeader(notifications.appVersion(),notifications,if(state.students.isEmpty()) null else ({logout=true}))
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.notice?.let { Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.tertiary) }
     if(state.students.isEmpty()) {
@@ -64,7 +59,10 @@ import androidx.compose.ui.unit.dp
        }
       }
      }
-     Text(state.section.label,style=MaterialTheme.typography.headlineSmall)
+     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+      Text(state.section.label,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f))
+      TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Odśwież") }
+     }
      if(state.section in listOf(Section.GRADES,Section.SUMMARY)) {
       var expanded by remember { mutableStateOf(false) }
       Box {
@@ -88,10 +86,9 @@ import androidx.compose.ui.unit.dp
        }},confirmButton={TextButton(onClick={model.dates(from,to);dates=false}){Text("Pobierz")}},dismissButton={TextButton(onClick={dates=false}){Text("Anuluj")}})
       }
      }
-     Row { TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Odśwież") };TextButton(onClick={logout=true}) { Text("Wyloguj") } }
      state.cachedAt?.let { Text("Zapisana kopia: "+it.take(19).replace("T"," ")+" UTC"+(if(state.busy) " · odświeżam…" else ""),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.tertiary) }
      if(state.section==Section.HOME) {
-      DashboardPane(state,Modifier.weight(1f),onSection={model.section(it)},onReminder={notifications.planReminder(it.title,it.date.take(10))})
+      DashboardPane(state,Modifier.weight(1f),onSection={model.section(it)},onReminder={notifications.planReminder(it.title,it.date.take(10))},onHistory={notifications.showHistory()},onPlanReminder={notifications.planReminder("","")})
      } else if(state.section==Section.SCHEDULE) {
       key(state.selected) { SchedulePane(state,Modifier.weight(1f),onCurrentWeek={model.section(Section.SCHEDULE)}) }
      } else if(state.section==Section.GRADES) {

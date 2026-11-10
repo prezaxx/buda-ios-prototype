@@ -8,7 +8,7 @@ import kotlinx.serialization.encodeToString
 import kotlin.time.Clock
 
 interface GradePollCallback { fun completed(result:String) }
-interface NotificationControls { fun showSettings();fun clear();fun planReminder(title:String,date:String) }
+interface NotificationControls { fun showSettings();fun clear();fun planReminder(title:String,date:String);fun showHistory()=showSettings();fun showAbout() {};fun appVersion():String="dev" }
 object NoNotificationControls:NotificationControls { override fun showSettings() {};override fun clear() {};override fun planReminder(title:String,date:String) {} }
 @Serializable data class NotificationGrade(val content:String,val subject:String,val description:String,val comment:String)
 @Serializable data class GradeChange(val id:String,val student:String,val period:String,val at:String,val before:NotificationGrade?=null,val after:NotificationGrade,val accountKey:String?=null)

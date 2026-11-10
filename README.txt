@@ -1,3 +1,17 @@
+BUDA iOS 0.11.0 - pulpit i informacje o aplikacji
+
+- Nowy naglowek, menu, zielono-niebieska paleta i zaokraglona nawigacja.
+- Numer wersji w naglowku pochodzi z metadanych zainstalowanej aplikacji.
+- O aplikacji: wersja, build, nowosci, prywatnosc, diagnostyka do skopiowania.
+- Skroty na pulpicie do centrum zmian ocen i planowania przypomnien.
+- Karta trwajacej lub najblizszej lekcji: czas do konca/startu i postep.
+  Dane wynikaja z pobranego planu. Karta nie potwierdza realnego trwania lekcji.
+  Nie pokazuje zajec odwolanych, starych danych, blednych godzin ani danych
+  z ostrzezeniem o niepelnym pobraniu planu.
+- Kolory ocen nauczyciela pozostaja bez zmian.
+- Powiadomienia i historia 0.10 zachowane; nadal brak APNs push.
+
+Historyczne opisy poprzednich wersji:
 BUDA iOS 0.10.0 - centrum zmian ocen
 
 Nowe:
