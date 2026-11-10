@@ -1,3 +1,20 @@
+Buda iOS 0.11.0 (build 12)
+Common Kotlin/JVM tests: 93 PASS, no failures/errors/skipped.
+Native Swift history tests: PASS.
+Native iOS device compilation and IPA packaging: PASS.
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/42779559296
+Application source commit: 6a716ec
+IPA CRC/version/build/bundle/executable: PASS.
+SHA256: c0ae38c0c7ee45eef73be7868264be2bfef1d0d31c1951458151fe1bf1f98270
+New coverage: current/next lesson selection, exact start/end boundaries,
+rounding remaining seconds, cancelled/invalid/other-day lessons, finished day.
+Version shown in app is read from installed bundle metadata.
+No independent physical iPhone layout or live notification-delivery check.
+No APNs push added: background refresh remains system-scheduled.
+User reports grade banners arriving after opening Buda; 0.11 does not fix
+that fundamental limitation of polling without a remote push provider.
+
+Previous release evidence:
 Buda iOS 0.10.0 (build 11)
 Common Kotlin/JVM tests: 88 PASS, 0 failures/errors/skipped.
 Native Swift regression checks: PASS (migration, sibling isolation, unread
