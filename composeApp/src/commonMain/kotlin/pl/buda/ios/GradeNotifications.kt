@@ -11,7 +11,7 @@ interface GradePollCallback { fun completed(result:String) }
 interface NotificationControls { fun showSettings();fun clear();fun planReminder(title:String,date:String) }
 object NoNotificationControls:NotificationControls { override fun showSettings() {};override fun clear() {};override fun planReminder(title:String,date:String) {} }
 @Serializable data class NotificationGrade(val content:String,val subject:String,val description:String,val comment:String)
-@Serializable data class GradeChange(val id:String,val student:String,val period:String,val at:String,val before:NotificationGrade?=null,val after:NotificationGrade)
+@Serializable data class GradeChange(val id:String,val student:String,val period:String,val at:String,val before:NotificationGrade?=null,val after:NotificationGrade,val accountKey:String?=null)
 @Serializable data class GradeBaseline(val accounts:Map<String,Map<String,NotificationGrade>> = emptyMap(),val history:List<GradeChange> = emptyList())
 @Serializable data class GradeObservation(val key:String,val grades:Map<String,NotificationGrade>,val student:String="Uczeń",val period:String="")
 @Serializable data class GradePollResult(val status:String,val snapshot:String="",val changes:Int=0,val accounts:Int=0,val failures:Int=0)
@@ -25,7 +25,7 @@ internal fun mergeGradeBaseline(previous:GradeBaseline,observations:List<GradeOb
   val old=updated[observation.key]
   if(old!=null) observation.grades.forEach { (id,value) ->
    val before=old[id]
-   if(before==null || normalizedGrade(before)!=normalizedGrade(value)) events+=GradeChange(scopeKey(listOf(observation.key,id,at)),observation.student,observation.period,at,before,value)
+   if(before==null || normalizedGrade(before)!=normalizedGrade(value)) events+=GradeChange(scopeKey(listOf(observation.key,id,at)),observation.student,observation.period,at,before,value,observation.key)
   }
   // Keep IDs through empty/transient responses to avoid replaying old grades.
   updated[observation.key]=old.orEmpty()+observation.grades

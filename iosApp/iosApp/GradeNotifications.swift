@@ -34,6 +34,9 @@ private final class PollCallback: NSObject, GradePollCallback {
     @Published private(set) var enabled = UserDefaults.standard.bool(forKey: "gradeChecksEnabled")
     @Published private(set) var status = "Sprawdzanie ocen nie zostało jeszcze uruchomione."
     @Published private(set) var running = false
+    @Published var bannerDetails = UserDefaults.standard.bool(forKey: "gradeBannerDetails") {
+        didSet { UserDefaults.standard.set(bannerDetails, forKey: "gradeBannerDetails") }
+    }
     @Published private(set) var diagnostics = "Odczytuję ustawienia iOS…"
     @Published private(set) var lastResult = UserDefaults.standard.string(forKey: "gradeLastResult") ?? "Brak zakończonego sprawdzenia."
     @Published private(set) var lastBackground = UserDefaults.standard.string(forKey: "gradeLastBackground") ?? "iOS nie uruchomił jeszcze sprawdzania w tle."
@@ -123,6 +126,8 @@ private final class PollCallback: NSObject, GradePollCallback {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         if !baseline.clear() { status = "Wyłączono sprawdzanie. Nie udało się usunąć historii porównań z pęku kluczy." }
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        if !KeychainVault(account: "grade-history-read-v1").clear() { status = "Nie udało się usunąć oznaczeń przeczytanych zmian. Odblokuj telefon i ponów wylogowanie." }
+        NotificationHistoryRoute.shared.batch = nil
     }
     func becameActive() {
         refreshDiagnostics()
@@ -169,7 +174,10 @@ private final class PollCallback: NSObject, GradePollCallback {
             }
             guard self.baseline.write(value: result.snapshot) else { self.status = "Nie udało się zapisać szczegółów zmiany. Nie wysłano banera."; self.finish(false); return }
             if result.changes == 0 { save(true); return }
-            self.post(id: "grades-" + UUID().uuidString, title: "Buda — zmiany ocen", body: "Nowe lub zmienione oceny: \(result.changes). Otwórz aplikację, aby zobaczyć szczegóły.") { ok in DispatchQueue.main.async { save(ok) } }
+            let entries = (try? HistoryEnvelope.entries(from: result.snapshot)) ?? []
+            let newEntries = Array(entries.prefix(min(result.changes, 100)))
+            let body = gradeBannerBody(entries: newEntries, total: result.changes, details: self.bannerDetails)
+            self.post(id: "grades-" + UUID().uuidString, title: "Buda - zmiany ocen", body: body, batch: newEntries.first?.at) { ok in DispatchQueue.main.async { save(ok) } }
         } })
     }
     private func finish(_ success: Bool) {
@@ -177,8 +185,9 @@ private final class PollCallback: NSObject, GradePollCallback {
         UserDefaults.standard.set(lastResult, forKey: "gradeLastResult")
         running = false; let callback = completion; completion = nil; callback?(success) }
     private func stopCheck() { generation += 1; poller.cancel(); if running { status = "Sprawdzanie przerwane przez zmianę stanu aplikacji lub wyłączenie funkcji. Ponowimy je przy następnej okazji."; finish(false) } }
-    private func post(id: String, title: String, body: String, delay: TimeInterval = 1, done: @escaping (Bool) -> Void) {
+    private func post(id: String, title: String, body: String, delay: TimeInterval = 1, batch: String? = nil, done: @escaping (Bool) -> Void) {
         let content = UNMutableNotificationContent(); content.title = title; content.body = body; content.sound = .default
+        if let batch { content.userInfo = ["gradeBatchAt": batch]; content.threadIdentifier = "buda-grade-changes" }
         let request = UNNotificationRequest(identifier: id, content: content, trigger: UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false))
         UNUserNotificationCenter.current().add(request) { error in done(error == nil) }
     }
@@ -197,7 +206,11 @@ private final class PollCallback: NSObject, GradePollCallback {
     }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         if response.notification.request.identifier.hasPrefix("grades-") {
-            DispatchQueue.main.async { NotificationHistoryRoute.shared.open = true }
+            let batch = response.notification.request.content.userInfo["gradeBatchAt"] as? String
+            DispatchQueue.main.async {
+                NotificationHistoryRoute.shared.batch = batch
+                NotificationHistoryRoute.shared.open = true
+            }
         }
         completionHandler()
     }
@@ -233,7 +246,7 @@ final class NativeNotificationControls: NSObject, NotificationControls {
         NavigationStack {
             Form {
                 Section("Historia") {
-                    NavigationLink("Historia zmian ocen") { GradeHistoryView() }
+                    NavigationLink("Centrum zmian ocen") { GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = nil } }
                     Text("Szczegóły nowych alertów: uczeń, przedmiot, ocena i zmieniony opis lub komentarz.").font(.footnote)
                 }
                 Section("Powiadomienia o ocenach") {
@@ -243,6 +256,10 @@ final class NativeNotificationControls: NSObject, NotificationControls {
                     Button("Test banera i dźwięku") { service.testBanner() }
                     Button("Test za 15 sekund — zablokuj ekran") { service.testBanner(delay: 15) }
                     Text(service.status).font(.footnote)
+                }
+                Section("Prywatność banera") {
+                    Toggle("Pokaż ucznia, przedmiot i ocenę", isOn: $service.bannerDetails)
+                    Text("Domyślnie baner nie ujawnia ocen. Po włączeniu szczegóły mogą pojawić się na zablokowanym ekranie. Opisy i komentarze pozostają w aplikacji.").font(.footnote)
                 }
                 Section("Moje przypomnienia") {
                     NavigationLink("Zaplanuj naukę lub zadanie") { ReminderListView() }

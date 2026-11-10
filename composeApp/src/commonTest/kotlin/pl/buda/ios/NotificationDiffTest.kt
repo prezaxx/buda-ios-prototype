@@ -61,4 +61,16 @@ class NotificationDiffTest {
   assertTrue(baseline.history.isEmpty())
  }
 
+
+ @Test fun sameNameStudentsKeepDistinctHistoryIdentityAndBatch() {
+  val before=GradeBaseline(mapOf("account-a" to mapOf("1" to grade("4")),"account-b" to mapOf("1" to grade("4"))))
+  val (next,count)=mergeGradeBaseline(before,listOf(
+   GradeObservation("account-a",mapOf("1" to grade("5")),"Jan Kowalski","1"),
+   GradeObservation("account-b",mapOf("1" to grade("6")),"Jan Kowalski","1")),"2026-11-10T12:00:00Z")
+  assertEquals(2,count)
+  assertEquals(setOf("account-a","account-b"),next.history.map { it.accountKey }.toSet())
+  assertEquals(2,next.history.map { it.id }.toSet().size)
+  assertTrue(next.history.all { it.at=="2026-11-10T12:00:00Z" })
+  assertEquals(next,sessionJson.decodeFromString<GradeBaseline>(sessionJson.encodeToString(GradeBaseline.serializer(),next)))
+ }
 }

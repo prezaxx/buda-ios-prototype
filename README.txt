@@ -1,3 +1,22 @@
+BUDA iOS 0.10.0 - centrum zmian ocen
+
+Nowe:
+- Historia: filtr ucznia, wyszukiwanie, tylko nieprzeczytane, oznaczanie widocznych.
+- Szczegoly zmiany: zapis wczesniej/po zmianie, opis, komentarz i lokalny czas wykrycia.
+- Dotkniecie nowego banera filtruje historie do partii zmian z tego powiadomienia.
+  Starsze banery bez identyfikatora partii otwieraja cala historie.
+- Opcjonalny podglad ucznia, przedmiotu i oceny na banerze; domyslnie wylaczony.
+- Oznaczenia przeczytania sa lokalne w Keychain, nie zmieniaja dziennika szkolnego.
+- Nowe wpisy rozrozniaja konta nawet przy identycznych nazwach uczniow.
+  Starsze wpisy 0.9 bez klucza konta sa filtrowane wedlug zapisanej nazwy.
+- Historia nadal ma limit 100 zmian; wylogowanie usuwa historie i oznaczenia.
+- Lokalne sprawdzanie, nie APNs push. iOS nadal decyduje o uruchomieniach w tle.
+
+Biezace funkcje: logowanie eduVULCAN, uczniowie, oceny, plan, wiadomosci
+z tworzeniem/szkicami, dane dziennika, lokalne przypomnienia i ograniczony
+cache offline. Szczegoly ograniczen sa opisane w sekcjach kolejnych wersji.
+Ponizej zachowano historyczne opisy - stwierdzenia o brakach dotycza danej wersji.
+
 BUDA iOS 0.9.0
 
 Zakres: logowanie eduVULCAN, wybor ucznia i semestru, oceny,
