@@ -1,3 +1,21 @@
+Buda iOS 0.10.0 (build 11)
+Common Kotlin/JVM tests: 88 PASS, 0 failures/errors/skipped.
+Native Swift regression checks: PASS (migration, sibling isolation, unread
+persistence, notification batch filtering, privacy and timestamps).
+Native iOS device build and IPA packaging: PASS.
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/42777368528
+Application source commit: 142f1f2
+IPA CRC/version/build/bundle/executable/background configuration: PASS.
+IPA SHA256: 8e9d29fc9c3a701427327eed7d4b6187312c27b5c171d29f00dd070ff4e07800
+Unsigned IPA requires AltStore signing.
+No independent iPhone UI/notification-delivery or live school account test.
+No APNs push service. iOS controls background scheduling.
+History retains 100 events. Read markers are local, not school read receipts.
+Legacy 0.9 history remains readable; old notifications have no batch filter.
+If a banner cannot be scheduled, saved history remains available.
+Background/Keychain settings and failure semantics otherwise unchanged.
+
+Previous release evidence:
 Buda iOS 0.9.0 (build 10)
 Common Kotlin/JVM compilation: PASS; 87 tests PASS, 0 failures/errors.
 Native iOS build and IPA packaging: PASS
