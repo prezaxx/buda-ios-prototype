@@ -22,13 +22,14 @@ enum BudaBuild {
                     Text("Nieoficjalny klient eduVULCAN na iPhone’a.")
                 }.padding(.vertical, 12)
             }
-            Section("Nowe w 0.11") {
-                Label("Odświeżony pulpit i czytelniejsze menu", systemImage: "square.grid.2x2")
+            Section("Nowe w 0.12") {
+                Label("Konfiguracja dodatku Web Push i szyfrowany eksport sesji", systemImage: "bell.badge")
                 Label("Trwająca lub następna lekcja z czasem do końca albo rozpoczęcia", systemImage: "clock")
                 Label("Szybkie wejście do zmian ocen i przypomnień", systemImage: "bell.badge")
                 Label("Numer wersji i informacje diagnostyczne", systemImage: "info.circle")
             }
             Section("Twoje powiadomienia") {
+                NavigationLink("Powiadomienia Web Push") { PushSetupView() }
                 LabeledContent("Sprawdzanie ocen", value: service.enabled ? "Włączone" : "Wyłączone")
                 Text(service.lastResult).font(.footnote)
                 NavigationLink("Centrum zmian ocen") {
@@ -52,7 +53,7 @@ enum BudaBuild {
                 Button("Odśwież diagnostykę") { copied = false; service.refreshDiagnostics() }
             }
             Section("Dane i prywatność") {
-                Text("Hasło nie jest zapisywane. Zapamiętana sesja oraz lokalne dane są przechowywane w pęku kluczy tego iPhone’a. Buda nie przesyła ich na własny serwer.")
+                Text("Hasło nie jest zapisywane. Zapamiętana sesja oraz lokalne dane są przechowywane w pęku kluczy tego iPhone’a. Opcjonalny dodatek Web Push otrzymuje sesję tylko po świadomym eksporcie i wczytaniu zaszyfrowanego pliku.")
                 Text("Historia ocen obejmuje ostatnie 100 wykrytych zmian. Oznaczenie przeczytania działa lokalnie. Wylogowanie usuwa zapisane dane aplikacji.")
                 Text("Offline dostępne są tylko wcześniej zapisane dane. Połączenie ze szkołą jest potrzebne do pobrania nowych wpisów.")
             }
