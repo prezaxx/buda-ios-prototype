@@ -24,7 +24,7 @@ import CryptoKit
   do { _ = try PushSessionExport.encrypt(session:"KEYCHAIN_UNAVAILABLE",keyFile:keyFile);fatalError("Invalid session accepted") } catch {}
   for invalid in [Data("not json".utf8), Data(#"{"version":2,"publicKey":"invalid"}"#.utf8)] {
    do { _ = try PushSessionExport.encrypt(session:session,keyFile:invalid);fatalError("Invalid key accepted") }
-   catch PushSessionExport.ExportError.invalidKey {} 
+   catch PushSessionExport.ExportError.invalidKey {}
    catch { fatalError("Wrong invalid-key error") }
   }
   do { _ = try PushSessionExport.encrypt(session:"KEYCHAIN_UNAVAILABLE",keyFile:keyFile);fatalError("Invalid session accepted") }

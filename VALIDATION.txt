@@ -1,3 +1,16 @@
+Buda iOS 0.12.2 (build 15)
+Application source commit: 82b0bdc
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/43235799595
+macOS workflow, Swift export/history/router tests and Kotlin tests: PASS.
+New checks distinguish invalid key files from missing or invalid sessions.
+Native iOS device compilation and IPA packaging: PASS.
+IPA CRC/version/build/executable: PASS.
+SHA256: 9f78c66935b102891d7245a09c1bd5d49b1668e37fabd683884eae0e99a69607
+File picker and exporter no longer open in the same callback.
+Prepared encrypted data is retained after a cancelled or failed save.
+Physical iPhone picker/export UI and real push receipt remain unverified.
+
+Previous release evidence:
 Buda iOS 0.12.1 (build 14)
 Application source commit: 02fe5477119da046b968694b294cf14e8215f656
 Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/43211495778

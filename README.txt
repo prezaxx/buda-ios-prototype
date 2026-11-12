@@ -1,5 +1,9 @@
 BUDA iOS 0.12.2 (build 15) - zapis zaszyfrowanej sesji
 
+Kompilacja i testy: PASS
+https://github.com/prezaxx/buda-ios-prototype/actions/runs/43235799595
+IPA: Buda-iOS-0.12.2-unsigned.ipa; szczegoly: VALIDATION.txt.
+
 - Po wybraniu klucza pojawia sie sekcja Plik sesji jest gotowy.
 - Nacisnij osobny przycisk Zapisz zaszyfrowana sesje i zapisz plik .buda.
   Okno zapisu nie jest juz otwierane w callbacku zamykanego wyboru pliku.
