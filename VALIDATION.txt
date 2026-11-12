@@ -1,3 +1,40 @@
+Buda iOS 0.12.1 (build 14)
+Application source commit: 02fe5477119da046b968694b294cf14e8215f656
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/43211495778
+GitHub macOS workflow: PASS.
+Swift sheet-router regression tests: PASS (all destinations, repeated taps,
+queued transitions, notification routing while dismissing).
+Swift history and encrypted-export tests, Kotlin/JVM tests: PASS in workflow.
+Native iOS device compilation and IPA packaging: PASS.
+IPA CRC/version/build/executable: PASS.
+SHA256: 2eb98b7f6b8131899264708be17dfe2e36a55be1e9c1d16c779f34b684ab4e8c
+Physical iPhone navigation and real push receipt: NOT independently verified.
+
+Companion status verified on 2026-11-12:
+Authenticated check_diary and push_status calls succeeded.
+No diary session imported at that check; enabled=false, hasSession=false.
+Hourly schedule saved and confirmed enabled, Europe/Warsaw:
+Automation_ea1e6c75fa8c819182508d720c879628
+15-minute frequency rejected by platform (at most one run per hour).
+Schedule creation is not proof that a scheduled school read or push ran.
+Companion source: bad15137e511481373be666ee80bc9e6a0999926e
+Deployment: appgdep_6af5a7dc01248191b555b96e031af02b, SUCCEEDED.
+TypeScript check and companion build: PASS.
+Real school session import and iPhone delivery remain unverified.
+
+Buda iOS 0.12.0 (build 13)
+Application source commit: 8303958
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/43068258262
+Native macOS workflow, Swift encrypted-export/history tests and Kotlin tests: PASS.
+IPA CRC/version/build/executable: PASS.
+SHA256: 5b608d4b7b876ed00e757ab8dde313a89eec57e3143b204795d22e5ff60b6b70
+Companion: 12 Node tests PASS, including exact matches for 4 Kotlin signer vectors.
+Tests include encrypted owner-isolated storage, session encryption, SSRF
+validation, failed delivery retry, history persistence before delivery and MCP auth.
+User subsequently reported native screen-opening failure; addressed in 0.12.1.
+No claim of physical device push receipt.
+
+Previous release evidence:
 Buda iOS 0.11.0 (build 12)
 Common Kotlin/JVM tests: 93 PASS, no failures/errors/skipped.
 Native Swift history tests: PASS.

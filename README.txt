@@ -1,3 +1,59 @@
+BUDA iOS 0.12.1 (build 14) - poprawka nawigacji i konfiguracja Web Push
+
+Aktualny kod aplikacji: 02fe5477119da046b968694b294cf14e8215f656
+Kompilacja i testy:
+https://github.com/prezaxx/buda-ios-prototype/actions/runs/43211495778
+IPA: Buda-iOS-0.12.1-unsigned.ipa, do podpisania i instalacji przez AltStore.
+Wyniki weryfikacji i suma SHA256: VALIDATION.txt.
+
+Zmiany w 0.12.1:
+- Centrum zmian, Powiadomienia, O aplikacji i przypomnienia otwierane przez
+  jeden router SwiftUI nalezacy do glownego widoku aplikacji.
+- Usunieto prezentowanie tych ekranow przez wyszukiwanie aktywnego okna UIKit,
+  ktore moglo wskazywac zamykane okno menu Compose.
+- Kolejkowanie przejsc podczas zamykania ekranu; obsluga dotkniecia banera.
+- Bezposrednie wejscie do konfiguracji Web Push w ustawieniach powiadomien.
+- Testy wszystkich ekranow, powtarzanych klikniec i przejsc przy zamykaniu.
+
+Dodane w 0.12.0:
+- Opcjonalny prywatny dodatek PWA Buda Powiadomienia:
+  https://buda-powiadomienia.amberline-0653.chatgpt.site
+- Eksport sesji z aplikacji: RSA-OAEP SHA256 + AES-GCM, bez hasla i cookies
+  wiadomosci. Serwer otrzymuje sesje dopiero po wczytaniu zaszyfrowanego pliku.
+- Dodatek przechowuje zaszyfrowane dane, historie do 100 zmian i kolejke
+  ponawiania wysylki. Dotkniecie Web Push otwiera historie dodatku.
+- Obslugiwane: oceny, frekwencja, sprawdziany, zadania, uwagi i ogloszenia.
+  Powiadomienia o wiadomosciach nie sa jeszcze obslugiwane.
+
+Aktualny stan powiadomien (stan konfiguracji z 2026-11-12):
+- Harmonogram dodatku jest wlaczony: raz na godzine, Europe/Warsaw.
+  Platforma odrzucila czestotliwosc 15 minut; minimum to jedna godzina.
+- Wymagane sa polaczona sesja, wlaczone sprawdzanie, zapisane urzadzenie
+  i zgoda na Web Push. Sam przelacznik lokalnych powiadomien Budy nie wystarcza.
+- Przy ostatniej weryfikacji serwer nie mial jeszcze sesji dziennika uzytkownika.
+- Import sesji uruchamia pierwsze pobranie od razu. Pierwszy odczyt ustala
+  cichy stan poczatkowy; nie wysyla starych ocen jako nowych.
+- To nie jest natywny APNs Budy ani wykorzystanie uslugi push eduVULCAN.
+  Lokalne sprawdzanie w aplikacji nadal zalezy od decyzji iOS.
+- Odbior prawdziwego Web Push oraz poprawione ekrany wymagaja potwierdzenia
+  na fizycznym iPhonie. Udana kompilacja nie potwierdza dostarczenia alertu.
+
+Jak polaczyc dodatek:
+1. Zainstaluj IPA przez AltStore.
+2. Otworz dodatek w Safari, dodaj do ekranu poczatkowego, uruchom z ikony
+   i zaloguj sie kontem ChatGPT wlasciciela prywatnej strony.
+3. Pobierz klucz polaczenia JSON z dodatku.
+4. W Budzie wybierz Powiadomienia -> Polacz sesje z dodatkiem powiadomien;
+   zatwierdz eksport, wybierz klucz i zapisz zaszyfrowany plik .buda.
+5. Wczytaj plik w dodatku, wlacz powiadomienia i wybierz Wyslij test.
+6. Sprawdz odbior na zablokowanym iPhonie.
+Usuniecie danych w dodatku usuwa jego kopie sesji. Wylogowanie z samej
+aplikacji Buda nie usuwa sesji zapisanej na serwerze dodatku.
+
+ARCHIWUM WYDAN
+Ponizsze opisy dotycza historycznych wersji. W szczegolnosci dawne stwierdzenia
+o braku zewnetrznego serwera dotycza wersji sprzed opcjonalnego dodatku 0.12.
+
 BUDA iOS 0.11.0 - pulpit i informacje o aplikacji
 
 - Nowy naglowek, menu, zielono-niebieska paleta i zaokraglona nawigacja.
