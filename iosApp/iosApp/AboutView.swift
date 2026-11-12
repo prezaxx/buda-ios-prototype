@@ -22,7 +22,7 @@ enum BudaBuild {
                     Text("Nieoficjalny klient eduVULCAN na iPhone’a.")
                 }.padding(.vertical, 12)
             }
-            Section("Nowe w 0.12") {
+            Section("Nowe w 0.12.1") {
                 Label("Konfiguracja dodatku Web Push i szyfrowany eksport sesji", systemImage: "bell.badge")
                 Label("Trwająca lub następna lekcja z czasem do końca albo rozpoczęcia", systemImage: "clock")
                 Label("Szybkie wejście do zmian ocen i przypomnień", systemImage: "bell.badge")
@@ -35,7 +35,7 @@ enum BudaBuild {
                 NavigationLink("Centrum zmian ocen") {
                     GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = nil }
                 }
-                Text("Buda korzysta z lokalnych powiadomień. iOS decyduje, kiedy wykona sprawdzenie w tle. Nie jest to serwerowy push i nie ma gwarancji natychmiastowych alertów.").font(.footnote)
+                Text("Lokalne sprawdzanie zależy od iOS. Oddzielny dodatek Web Push wymaga połączenia sesji i zgody na powiadomienia. Harmonogram dodatku działa raz na godzinę, a alerty otwierają historię na stronie dodatku.").font(.footnote)
             }
             Section("Diagnostyka") {
                 Text(service.diagnostics).font(.footnote).textSelection(.enabled)

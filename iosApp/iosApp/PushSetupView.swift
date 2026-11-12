@@ -19,7 +19,7 @@ struct EncryptedSessionDocument: FileDocument {
         List {
             Section {
                 Label("Buda Powiadomienia", systemImage: "bell.badge.fill").font(.title2.bold()).foregroundStyle(.teal)
-                Text("Dodatek na ekranie głównym iPhone’a odbiera Web Push niezależnie od otwarcia Budy. Wymaga połączenia sesji oraz uruchomionego harmonogramu serwera.")
+                Text("Dodatek na ekranie głównym iPhone’a odbiera Web Push niezależnie od otwarcia Budy. Wymaga połączenia sesji i zgody na powiadomienia. Harmonogram serwera sprawdza dziennik raz na godzinę; alerty nie są natychmiastowe.")
                 Link("Otwórz prywatny dodatek", destination: site)
             }
             Section("Połączenie krok po kroku") {

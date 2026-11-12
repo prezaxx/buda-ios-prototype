@@ -208,8 +208,7 @@ private final class PollCallback: NSObject, GradePollCallback {
         if response.notification.request.identifier.hasPrefix("grades-") {
             let batch = response.notification.request.content.userInfo["gradeBatchAt"] as? String
             DispatchQueue.main.async {
-                NotificationHistoryRoute.shared.batch = batch
-                NotificationHistoryRoute.shared.open = true
+                AppSheetRouter.shared.present(.history(batch: batch))
             }
         }
         completionHandler()
@@ -222,46 +221,31 @@ private final class PollCallback: NSObject, GradePollCallback {
 final class NativeNotificationControls: NSObject, NotificationControls {
     func appVersion() -> String { BudaBuild.version }
     func showAbout() {
-        DispatchQueue.main.async { Self.present(NavigationStack { AboutView() }) }
+        DispatchQueue.main.async { AppSheetRouter.shared.present(.about) }
     }
     func showHistory() {
-        DispatchQueue.main.async {
-            NotificationHistoryRoute.shared.batch = nil
-            Self.present(NavigationStack { GradeHistoryView() })
-        }
+        DispatchQueue.main.async { AppSheetRouter.shared.present(.history(batch: nil)) }
     }
-    @MainActor private static func present<V: View>(_ view: V) {
-        let root = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }.first { $0.isKeyWindow }?.rootViewController
-        var presenter = root
-        while let presented = presenter?.presentedViewController { presenter = presented }
-        presenter?.present(UIHostingController(rootView: view), animated: true)
-    }
-
     func showSettings() {
-        DispatchQueue.main.async {
-            let root = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }.first { $0.isKeyWindow }?.rootViewController
-            var presenter = root
-            while let presented = presenter?.presentedViewController { presenter = presented }
-            presenter?.present(UIHostingController(rootView: NotificationSettingsView()), animated: true)
-        }
+        DispatchQueue.main.async { AppSheetRouter.shared.present(.settings) }
     }
     func planReminder(title: String, date: String) {
-        DispatchQueue.main.async {
-            let root = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap { $0.windows }.first { $0.isKeyWindow }?.rootViewController
-            var presenter = root
-            while let presented = presenter?.presentedViewController { presenter = presented }
-            presenter?.present(UIHostingController(rootView: NavigationStack { ReminderListView(title: title, date: date) }), animated: true)
-        }
+        DispatchQueue.main.async { AppSheetRouter.shared.present(.reminder(title: title, date: date)) }
     }
     func clear_() { DispatchQueue.main.async { GradeNotificationService.shared.clear() } }
 }
-@MainActor private struct NotificationSettingsView: View {
+@MainActor struct NotificationSettingsView: View {
     @Environment(\.scenePhase) private var phase
     @ObservedObject private var service = GradeNotificationService.shared
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
             Form {
+                Section("Powiadomienia Web Push") {
+                    NavigationLink("Połącz sesję z dodatkiem powiadomień") { PushSetupView() }
+                    Text("Samo włączenie lokalnych powiadomień nie uruchamia dodatku. Potrzebne są eksport sesji, wczytanie jej na stronie i zgoda na powiadomienia z ikony dodatku. Harmonogram serwera sprawdza dziennik raz na godzinę.")
+                        .font(.footnote)
+                }
                 Section("Historia") {
                     NavigationLink("Centrum zmian ocen") { GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = nil } }
                     Text("Szczegóły nowych alertów: uczeń, przedmiot, ocena i zmieniony opis lub komentarz.").font(.footnote)

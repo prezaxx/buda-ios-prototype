@@ -2,7 +2,6 @@ import SwiftUI
 
 @MainActor final class NotificationHistoryRoute: ObservableObject {
     static let shared = NotificationHistoryRoute()
-    @Published var open = false
     @Published var batch: String?
 }
 @MainActor struct GradeHistoryView: View {
