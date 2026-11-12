@@ -1,3 +1,16 @@
+BUDA iOS 0.12.2 (build 15) - zapis zaszyfrowanej sesji
+
+- Po wybraniu klucza pojawia sie sekcja Plik sesji jest gotowy.
+- Nacisnij osobny przycisk Zapisz zaszyfrowana sesje i zapisz plik .buda.
+  Okno zapisu nie jest juz otwierane w callbacku zamykanego wyboru pliku.
+- Anulowanie lub blad zapisu zachowuje zaszyfrowany dokument do ponowienia.
+- Stan i bledy eksportu sa widoczne na gorze ekranu.
+- Bledny klucz i brak zapisanej sesji maja oddzielne komunikaty.
+- Weryfikacja na fizycznym iPhonie pozostaje do potwierdzenia.
+Instalacja: IPA z workflow Build IPA for AltStore, podpis przez AltStore.
+Instrukcje polaczenia i zakres powiadomien opisano ponizej.
+
+Archiwum opisow wydan:
 BUDA iOS 0.12.1 (build 14) - poprawka nawigacji i konfiguracja Web Push
 
 Aktualny kod aplikacji: 02fe5477119da046b968694b294cf14e8215f656

@@ -8,19 +8,20 @@ enum PushSessionExport {
         var errorDescription: String? {
             switch self {
             case .invalidKey: return "Nieprawidłowy klucz połączenia. Pobierz go z prywatnej strony Buda Powiadomienia."
-            case .invalidSession: return "Brak poprawnej sesji dziennika. Zaloguj się ponownie w Budzie."
+            case .invalidSession: return "Brak zapisanej sesji dziennika. Włącz Zapamiętaj sesję i zaloguj się ponownie w Budzie."
             case .encryption: return "Nie udało się zaszyfrować sesji."
             }
         }
     }
     static func encrypt(session: String, keyFile: Data) throws -> Data {
         guard keyFile.count < 10_000,
-              let config = try JSONSerialization.jsonObject(with: keyFile) as? [String: Any],
+              let config = (try? JSONSerialization.jsonObject(with: keyFile)) as? [String: Any],
               config["version"] as? Int == 1,
               let encoded = config["publicKey"] as? String,
-              let keyData = Data(base64Encoded: encoded),
-              let rootData = session.data(using: .utf8),
-              let root = try JSONSerialization.jsonObject(with: rootData) as? [String: Any],
+              let keyData = Data(base64Encoded: encoded)
+        else { throw ExportError.invalidKey }
+        guard let rootData = session.data(using: .utf8),
+              let root = (try? JSONSerialization.jsonObject(with: rootData)) as? [String: Any],
               let students = root["students"] as? [[String: Any]], !students.isEmpty, students.count <= 10
         else { throw ExportError.invalidSession }
         // Export only the API session. Message cookies and passwords are never included.
