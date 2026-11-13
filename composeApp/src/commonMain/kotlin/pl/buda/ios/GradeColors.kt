@@ -31,7 +31,7 @@ internal fun gradePalette(value:String,dark:Boolean,teacherRgb:Int?=null):GradeP
 @Composable internal fun GradeBadge(value:String,modifier:Modifier=Modifier,teacherRgb:Int?=null,onClick:(()->Unit)?=null) {
  val colors=gradePalette(value,isSystemInDarkTheme(),teacherRgb)
  if(onClick!=null) Surface(onClick=onClick,modifier=modifier.heightIn(min=48.dp),shape=MaterialTheme.shapes.small,color=colors.background,contentColor=colors.foreground) {
-  Box(Modifier.padding(horizontal=8.dp,vertical=10.dp),contentAlignment=androidx.compose.ui.Alignment.Center) { Text(value,style=MaterialTheme.typography.titleMedium) }
+  Box(Modifier.padding(horizontal=8.dp,vertical=10.dp),contentAlignment=androidx.compose.ui.Alignment.Center) { Text(value,style=MaterialTheme.typography.titleLarge,fontWeight=androidx.compose.ui.text.font.FontWeight.Bold) }
  } else Surface(modifier=modifier.heightIn(min=48.dp),shape=MaterialTheme.shapes.small,color=colors.background,contentColor=colors.foreground) {
   Box(Modifier.padding(horizontal=12.dp,vertical=10.dp),contentAlignment=androidx.compose.ui.Alignment.Center) { Text(value,style=MaterialTheme.typography.titleLarge) }
  }

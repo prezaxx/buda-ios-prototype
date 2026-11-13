@@ -71,3 +71,36 @@ func gradeBannerBody(entries: [GradeHistoryEntry], total: Int, details: Bool) ->
     let summary = "\(first.student) · \(first.after.subject): \(first.preview)"
     return String(summary.prefix(180)) + (total > 1 ? " · Pozostałe zmiany: \(total - 1)." : "")
 }
+
+struct GradeHistoryDay: Identifiable {
+    let id: String
+    let title: String
+    let entries: [GradeHistoryEntry]
+}
+func groupedGradeHistory(_ entries: [GradeHistoryEntry], now: Date = Date(), calendar: Calendar = .current) -> [GradeHistoryDay] {
+    var dated: [Date: [GradeHistoryEntry]] = [:]
+    var unknown: [GradeHistoryEntry] = []
+    for entry in entries {
+        if let date = entry.detectedDate { dated[calendar.startOfDay(for: date), default: []].append(entry) }
+        else { unknown.append(entry) }
+    }
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "pl_PL")
+    formatter.calendar = calendar
+    formatter.timeZone = calendar.timeZone
+    formatter.dateStyle = .medium
+    let yesterday = calendar.date(byAdding: .day, value: -1, to: now)
+    var sections = dated.keys.sorted(by: >).map { day in
+        let title: String
+        if calendar.isDate(day, inSameDayAs: now) { title = "Dzisiaj" }
+        else if let yesterday, calendar.isDate(day, inSameDayAs: yesterday) { title = "Wczoraj" }
+        else { title = formatter.string(from: day) }
+        let rows = dated[day]!.sorted {
+            let a = $0.detectedDate ?? .distantPast, b = $1.detectedDate ?? .distantPast
+            return a == b ? $0.id < $1.id : a > b
+        }
+        return GradeHistoryDay(id: String(day.timeIntervalSince1970), title: title, entries: rows)
+    }
+    if !unknown.isEmpty { sections.append(GradeHistoryDay(id: "unknown", title: "Bez daty wykrycia", entries: unknown)) }
+    return sections
+}

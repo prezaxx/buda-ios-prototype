@@ -36,6 +36,20 @@ import Foundation
         precondition(detailedBanner.contains("4 → 5") && !detailedBanner.contains("Poprawa"))
         precondition(detailedBanner.contains("Pozostałe zmiany: 1"))
         do { _ = try HistoryEnvelope.entries(from: "KEYCHAIN_UNAVAILABLE"); fatalError("Invalid history accepted") } catch {}
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Warsaw")!
+        let now = ISO8601DateFormatter().date(from: "2026-11-10T18:00:00Z")!
+        let groups = groupedGradeHistory(Array(entries.reversed()), now: now, calendar: calendar)
+        precondition(groups.map(\.title) == ["Dzisiaj", "Wczoraj"])
+        precondition(groups.flatMap(\.entries).map(\.id) == ["a", "b"])
+        let boundary = GradeHistoryEntry(id: "midnight", student: "Jan", period: "1", at: "2026-11-09T23:30:00Z", before: nil, after: entries[0].after)
+        let unknown = GradeHistoryEntry(id: "unknown", student: "Jan", period: "1", at: "invalid", before: nil, after: entries[0].after)
+        let timezoneGroups = groupedGradeHistory([unknown, boundary, entries[0]], now: now, calendar: calendar)
+        precondition(timezoneGroups.count == 2)
+        precondition(timezoneGroups[0].title == "Dzisiaj")
+        precondition(timezoneGroups[0].entries.map(\.id) == ["a", "midnight"])
+        precondition(timezoneGroups[1].title == "Bez daty wykrycia")
+        precondition(groupedGradeHistory([], now: now, calendar: calendar).isEmpty)
         print("Grade history model: migration, sibling isolation, unread persistence, batch routing, privacy and timestamps PASS")
     }
 }

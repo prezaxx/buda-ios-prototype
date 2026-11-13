@@ -22,11 +22,11 @@ enum BudaBuild {
                     Text("Nieoficjalny klient eduVULCAN na iPhone’a.")
                 }.padding(.vertical, 12)
             }
-            Section("Nowe w 0.12.2") {
-                Label("Konfiguracja dodatku Web Push i szyfrowany eksport sesji", systemImage: "bell.badge")
-                Label("Trwająca lub następna lekcja z czasem do końca albo rozpoczęcia", systemImage: "clock")
-                Label("Szybkie wejście do zmian ocen i przypomnień", systemImage: "bell.badge")
-                Label("Numer wersji i informacje diagnostyczne", systemImage: "info.circle")
+            Section("Nowe w 0.13") {
+                Label("Pulpit Mój dzień z gradientem i kartami ładowania", systemImage: "sun.max")
+                Label("Nowe karty ocen i szczegóły wysuwane od dołu", systemImage: "rectangle.bottomthird.inset.filled")
+                Label("Oś zmian: Dzisiaj, Wczoraj i wcześniejsze dni", systemImage: "clock")
+                Label("Czytelne porównanie oceny przed i po zmianie", systemImage: "arrow.left.arrow.right")
             }
             Section("Twoje powiadomienia") {
                 NavigationLink("Powiadomienia Web Push") { PushSetupView() }

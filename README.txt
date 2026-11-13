@@ -1,3 +1,19 @@
+BUDA iOS 0.13.0 (build 16) - Moj dzien i nowa os zmian
+
+- Pulpit Moj dzien: gradient, delikatne tlo, data i wybrany uczen.
+- Karty zastepcze podczas pierwszego ladowania dnia, bez zapetlonej animacji.
+- Czytelniejsze karty ocen, wieksze kafelki i szczegoly wysuwane od dolu.
+  Kolory ocen nauczyciela oraz tekstowe wartosci pozostaja zachowane.
+- Centrum zmian z grupami Dzisiaj, Wczoraj i datami w lokalnej strefie czasowej.
+- Os czasu z porownaniem przed/po, opisem i oznaczeniem nieprzeczytanych wpisow.
+- Delikatne animacje filtrow historii respektuja systemowe Ogranicz ruch.
+- Dotychczasowe funkcje dziennika i konfiguracja Web Push pozostaja dostepne.
+- To aktualizacja wygladu; nie zmienia godzinnego harmonogramu dodatku push.
+Weryfikacja wygladu i gestow na fizycznym iPhonie pozostaje do potwierdzenia.
+IPA: Buda-iOS-0.13.0-unsigned.ipa, do instalacji przez AltStore.
+Wyniki kompilacji i testow: VALIDATION.txt.
+
+Archiwum opisow wydan:
 BUDA iOS 0.12.2 (build 15) - zapis zaszyfrowanej sesji
 
 Kompilacja i testy: PASS

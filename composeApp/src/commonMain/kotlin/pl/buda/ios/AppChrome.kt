@@ -33,13 +33,13 @@ import androidx.compose.ui.unit.dp
 }
 @Composable internal fun DashboardShortcuts(onHistory:()->Unit,onReminder:()->Unit) {
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-  ShortcutCard("Zmiany ocen","Zobacz, co nowego",Modifier.weight(1f),onHistory)
-  ShortcutCard("Przypomnienie","Zaplanuj naukę",Modifier.weight(1f),onReminder)
+  ShortcutCard("Zmiany ocen","Twoja oś czasu",Modifier.weight(1f),onHistory)
+  ShortcutCard("Przypomnienie","Zaplanuj spokojnie",Modifier.weight(1f),onReminder)
  }
 }
 @Composable private fun ShortcutCard(title:String,detail:String,modifier:Modifier,onClick:()->Unit) {
  Card(onClick=onClick,modifier=modifier,colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.secondaryContainer)) {
-  Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+  Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(7.dp)) {
    Text(title,style=MaterialTheme.typography.titleSmall,color=MaterialTheme.colorScheme.onSecondaryContainer)
    Text(detail,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSecondaryContainer)
   }

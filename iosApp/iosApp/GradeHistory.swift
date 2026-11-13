@@ -5,6 +5,7 @@ import SwiftUI
     @Published var batch: String?
 }
 @MainActor struct GradeHistoryView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var service = GradeNotificationService.shared
     @ObservedObject private var route = NotificationHistoryRoute.shared
@@ -59,7 +60,10 @@ import SwiftUI
                         Text("Nieprzeczytane: \(entries.filter { !reads.ids.contains($0.id) }.count) · Zapisane: \(entries.count)")
                             .font(.caption).foregroundStyle(.secondary)
                     }
-                }.padding(.vertical, 6)
+                }.padding(16)
+                    .background(RoundedRectangle(cornerRadius: 20).fill(
+                        LinearGradient(colors: [Color.teal.opacity(0.16), Color.blue.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+
                 Text(service.lastResult).font(.caption).foregroundStyle(.secondary)
                 Button(service.running ? "Sprawdzanie…" : "Sprawdź oceny teraz", systemImage: "arrow.clockwise") { service.check() }
                     .disabled(!service.enabled || service.running)
@@ -79,43 +83,43 @@ import SwiftUI
                     Button("Pokaż całą historię") { route.batch = nil }
                 }
             }
-            Section("Co się zmieniło") {
-                if visible.isEmpty && ready {
-                    Text(route.batch != nil
-                         ? "Brak pasujących wpisów. Zmień filtry lub pokaż całą historię. Starsze zmiany mogły wypaść z limitu 100 wpisów."
-                         : "Brak zmian pasujących do filtrów. Pierwsze sprawdzenie zapisuje punkt odniesienia bez powiadamiania o starych ocenach.")
-                        .foregroundStyle(.secondary)
+            if visible.isEmpty && ready {
+                Section {
+                    VStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle").font(.largeTitle).foregroundStyle(.teal)
+                        Text("Brak pasujących zmian").font(.headline)
+                        Text(route.batch != nil
+                             ? "Brak wpisów pasujących do tego powiadomienia. Zmień filtry lub pokaż całą historię."
+                             : "Brak zmian pasujących do filtrów. Pierwsze sprawdzenie zapisuje stan początkowy bez alertów o starych ocenach.")
+                            .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    }.frame(maxWidth: .infinity).padding(.vertical, 20)
                 }
-                ForEach(visible) { entry in
-                    Button {
-                        selected = entry
-                        mark([entry], read: true)
-                    } label: {
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: entry.before == nil ? "plus.circle.fill" : "arrow.triangle.2.circlepath")
-                                .foregroundStyle(reads.ids.contains(entry.id) ? Color.secondary : Color.teal)
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(entry.student).font(.headline)
-                                Text(entry.after.subject).font(.subheadline)
-                                Text(entry.preview).font(.title3.bold()).foregroundStyle(.primary)
-                                HStack {
-                                    Text(entry.changeLabel)
-                                    Spacer()
-                                    if !reads.ids.contains(entry.id) { Text("NOWE").fontWeight(.bold).foregroundStyle(.teal) }
-                                }.font(.caption)
-                                if let date = entry.detectedDate {
-                                    Text(date.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }.padding(.vertical, 6)
-                    }.buttonStyle(.plain)
-                    .swipeActions {
-                        Button(reads.ids.contains(entry.id) ? "Nieprzeczytane" : "Przeczytane") {
-                            mark([entry], read: !reads.ids.contains(entry.id))
-                        }.tint(.teal)
+            }
+            ForEach(groupedGradeHistory(visible)) { group in
+                Section {
+                    ForEach(group.entries) { entry in
+                        Button {
+                            selected = entry
+                            mark([entry], read: true)
+                        } label: {
+                            HistoryTimelineRow(entry: entry, unread: !reads.ids.contains(entry.id))
+                        }.buttonStyle(.plain)
+                        .swipeActions {
+                            Button(reads.ids.contains(entry.id) ? "Nieprzeczytane" : "Przeczytane") {
+                                mark([entry], read: !reads.ids.contains(entry.id))
+                            }.tint(.teal)
+                        }
                     }
+                } header: {
+                    HStack {
+                        Text(group.title)
+                        Spacer()
+                        Text("\(group.entries.count)")
+                    }.font(.subheadline.weight(.semibold)).textCase(nil)
                 }
-                if !visible.isEmpty {
+            }
+            if !visible.isEmpty {
+                Section {
                     Button("Oznacz widoczne jako przeczytane") { mark(visible, read: true) }.disabled(!ready)
                 }
             }
@@ -124,6 +128,9 @@ import SwiftUI
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
+        .listStyle(.insetGrouped)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: unreadOnly)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: student)
         .searchable(text: $query, prompt: "Uczeń, przedmiot, ocena lub komentarz")
         .navigationTitle("Zmiany ocen")
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Gotowe") { dismiss() } } }
@@ -164,5 +171,52 @@ private struct GradeChangeDetail: View {
         LabeledContent("Przedmiot", value: grade.subject)
         VStack(alignment: .leading) { Text("Opis").font(.caption).foregroundStyle(.secondary); Text(grade.description.isEmpty ? "Brak" : grade.description) }
         VStack(alignment: .leading) { Text("Komentarz").font(.caption).foregroundStyle(.secondary); Text(grade.comment.isEmpty ? "Brak" : grade.comment) }
+    }
+}
+
+private struct HistoryTimelineRow: View {
+    let entry: GradeHistoryEntry
+    let unread: Bool
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(spacing: 6) {
+                Image(systemName: entry.before == nil ? "plus" : "arrow.triangle.2.circlepath")
+                    .font(.caption.bold())
+                    .frame(width: 30, height: 30)
+                    .foregroundStyle(unread ? Color.teal : Color.secondary)
+                    .background(Circle().fill(Color.teal.opacity(unread ? 0.14 : 0.06)))
+                RoundedRectangle(cornerRadius: 1).fill(Color.teal.opacity(0.15)).frame(width: 2, height: 44)
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(entry.after.subject).font(.headline).foregroundStyle(.primary)
+                    Spacer(minLength: 8)
+                    if unread {
+                        Text("NOWE").font(.caption2.bold()).foregroundStyle(.teal)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Capsule().fill(Color.teal.opacity(0.12)))
+                    }
+                }
+                HStack(spacing: 10) {
+                    if let before = entry.before, before.content != entry.after.content {
+                        Text(before.content).font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+                            .padding(10).background(RoundedRectangle(cornerRadius: 12).fill(Color.secondary.opacity(0.08)))
+                        Image(systemName: "arrow.right").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Text(entry.after.content).font(.title2.bold()).foregroundStyle(.primary)
+                        .padding(.horizontal, 15).padding(.vertical, 9)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.teal.opacity(0.12)))
+                    Text(entry.changeLabel).font(.caption).foregroundStyle(.secondary)
+                }
+                Text(entry.student).font(.subheadline).foregroundStyle(.secondary)
+                if !entry.after.description.isEmpty {
+                    Text(entry.after.description).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                }
+                if let date = entry.detectedDate {
+                    Text(date.formatted(date: .omitted, time: .shortened))
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }
+        }.padding(.vertical, 9).accessibilityElement(children: .combine)
     }
 }

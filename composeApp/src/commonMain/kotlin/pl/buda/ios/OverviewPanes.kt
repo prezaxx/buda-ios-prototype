@@ -25,15 +25,7 @@ import kotlin.time.Clock
 @Composable internal fun DashboardPane(state:ScreenState,modifier:Modifier,onSection:(Section)->Unit,onReminder:(DiaryRow)->Unit={},onHistory:()->Unit={},onPlanReminder:()->Unit={}) {
  val now=liveClock();val data=state.dashboard
  LazyColumn(modifier,verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=24.dp)) {
-  item {
-   Surface(shape=MaterialTheme.shapes.large) {
-    Column(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(MaterialTheme.colorScheme.primaryContainer,MaterialTheme.colorScheme.secondaryContainer))).padding(22.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-     Text(if(now.hour<18) "DZIEŃ DOBRY" else "DOBRY WIECZÓR",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
-     Text(dayTitle(data?.today ?: now.date),style=MaterialTheme.typography.headlineSmall)
-     Text("Sprawdź plan i zaplanuj to, co przed Tobą.",style=MaterialTheme.typography.bodyMedium)
-    }
-   }
-  }
+  item { MyDayHero(now.date,state.selected?.let { state.students.getOrNull(it)?.title }.orEmpty()) }
   item { DashboardShortcuts(onHistory,onPlanReminder) }
   if(data!=null && data.today==now.date && data.schedule.warning==null) {
    lessonSpotlight(data.schedule.rows,now)?.let { spotlight ->
@@ -43,7 +35,7 @@ import kotlin.time.Clock
   if(data!=null) item {
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
     val end=data.today.plus(6,DateTimeUnit.DAY)
-    DashboardCount("Lekcje dziś",if(data.schedule.warning==null) upcomingRows(data.schedule.rows,data.today,data.today).count { it.lesson?.cancelled!=true }.toString() else "—",Modifier.weight(1f)) { onSection(Section.SCHEDULE) }
+    DashboardCount(if(data.today==now.date) "Lekcje dziś" else "Lekcje • "+data.today.toString(),if(data.schedule.warning==null) upcomingRows(data.schedule.rows,data.today,data.today).count { it.lesson?.cancelled!=true }.toString() else "—",Modifier.weight(1f)) { onSection(Section.SCHEDULE) }
     DashboardCount("Sprawdziany · 7 dni",if(data.exams.warning==null) upcomingRows(data.exams.rows,data.today,end).size.toString() else "—",Modifier.weight(1f)) { onSection(Section.EXAMS) }
     DashboardCount("Zadania · 7 dni",if(data.homework.warning==null) upcomingRows(data.homework.rows,data.today,end).size.toString() else "—",Modifier.weight(1f)) { onSection(Section.HOMEWORK) }
    }
@@ -79,7 +71,7 @@ import kotlin.time.Clock
     if(rows.isEmpty() && result.warning==null) item(key="empty:$section") { EmptyCard("Brak wpisów z terminem w najbliższych 7 dniach.") }
     if(rows.size>8) item { TextButton(onClick={onSection(section)}) { Text("Zobacz pozostałe (${rows.size-8})") } }
    }
-  } else if(state.busy) item { Text("Pobieram Twój dzień…",style=MaterialTheme.typography.bodyMedium) }
+  } else if(state.busy) item { DayLoadingCards() }
  }
 }
 @Composable private fun DashboardCount(title:String,count:String,modifier:Modifier,onClick:()->Unit) {
@@ -169,9 +161,9 @@ import kotlin.time.Clock
 @Composable internal fun GradesPane(state:ScreenState,modifier:Modifier) {
  var query by remember { mutableStateOf("") };var grouped by remember { mutableStateOf(true) }
  var closed by remember { mutableStateOf(setOf<String>()) }
- var detail by remember { mutableStateOf<GradeRow?>(null) }
+ var detail by remember(state.selected,state.periodId) { mutableStateOf<GradeRow?>(null) }
  val grades=state.grades.filter { matchesSearch(query,it.subject,it.description,it.comment,it.content) }
- detail?.let { grade -> AlertDialog(onDismissRequest={detail=null},title={Row(horizontalArrangement=Arrangement.spacedBy(12.dp)) { GradeBadge(grade.content,teacherRgb=grade.teacherRgb);Text(grade.subject,Modifier.weight(1f),style=MaterialTheme.typography.titleLarge) }},text={SelectionContainer { Text(listOf(grade.description,grade.comment,grade.createdAt).filter { it.isNotBlank() }.joinToString("\n\n")) }},confirmButton={TextButton(onClick={detail=null}) { Text("Zamknij") }}) }
+ detail?.let { grade -> GradeDetailSheet(grade) { detail=null } }
  LazyColumn(modifier,verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=24.dp)) {
   item {
    Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -188,7 +180,7 @@ import kotlin.time.Clock
     Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
      Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
       Row(Modifier.fillMaxWidth().clickable { closed=if(subject in closed) closed-subject else closed+subject },horizontalArrangement=Arrangement.SpaceBetween) {
-       Text(subject,Modifier.weight(1f),style=MaterialTheme.typography.titleMedium)
+       Text(subject,Modifier.weight(1f),style=MaterialTheme.typography.titleLarge)
        Text("${list.size}  "+if(subject in closed) "+" else "−",color=MaterialTheme.colorScheme.primary)
       }
       if(subject !in closed) {
@@ -196,18 +188,13 @@ import kotlin.time.Clock
         chunk.forEach { grade -> GradeBadge(grade.content,Modifier.weight(1f),teacherRgb=grade.teacherRgb,onClick={detail=grade}) }
         repeat(4-chunk.size) { Spacer(Modifier.weight(1f)) }
        } }
-       Text("Dotknij oceny, aby zobaczyć opis.",style=MaterialTheme.typography.labelSmall)
+       Text("Dotknij kafelka • opis i komentarz",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
       }
      }
     }
    }
   } else items(grades.sortedByDescending { it.createdAt },key={it.id}) { grade ->
-   Card(onClick={detail=grade},modifier=Modifier.fillMaxWidth()) {
-    Row(Modifier.padding(16.dp),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
-     GradeBadge(grade.content,Modifier.widthIn(min=60.dp,max=100.dp),teacherRgb=grade.teacherRgb)
-     Column(Modifier.weight(1f)) { Text(grade.subject,style=MaterialTheme.typography.titleMedium);Text(grade.description);Text(grade.createdAt.take(10),style=MaterialTheme.typography.labelSmall) }
-    }
-   }
+   GradeChronologyCard(grade) { detail=grade }
   }
  }
 }
