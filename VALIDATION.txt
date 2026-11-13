@@ -1,3 +1,18 @@
+Buda iOS 0.13.0 (build 16)
+Application source commit: 8a28b488f4a39a1adc2b7aaeb4badd7f8d3e0dec
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/43415329487
+GitHub macOS workflow: PASS.
+Swift history grouping, encrypted-export and sheet-router tests: PASS.
+History checks cover local midnight, reversed input, invalid dates and empty input.
+Kotlin/JVM tests: PASS locally and in workflow.
+Native iOS device compilation and IPA packaging: PASS.
+Downloaded IPA CRC/version/build/executable: PASS.
+SHA256: d231470dfac00c3de2e737355a68375d83c28ef1188a5f3482e5c70623649c17
+Teacher grade palette retained; history animation respects Reduce Motion.
+Physical iPhone visual layout and gestures remain unverified.
+Push delivery was not changed or independently verified in this visual release.
+
+Previous release evidence:
 Buda iOS 0.12.2 (build 15)
 Application source commit: 82b0bdc
 Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/43235799595

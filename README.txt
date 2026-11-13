@@ -11,6 +11,8 @@ BUDA iOS 0.13.0 (build 16) - Moj dzien i nowa os zmian
 - To aktualizacja wygladu; nie zmienia godzinnego harmonogramu dodatku push.
 Weryfikacja wygladu i gestow na fizycznym iPhonie pozostaje do potwierdzenia.
 IPA: Buda-iOS-0.13.0-unsigned.ipa, do instalacji przez AltStore.
+Kompilacja i testy: PASS
+https://github.com/prezaxx/buda-ios-prototype/actions/runs/43415329487
 Wyniki kompilacji i testow: VALIDATION.txt.
 
 Archiwum opisow wydan:
