@@ -1,3 +1,31 @@
+BUDA iOS 0.14.0 (build 17) - powiadomienia o zmianach w dzienniku
+
+Zakres: oceny, wiadomosci, frekwencja, sprawdziany, zadania, uwagi,
+ogloszenia, plan/zajecia dodatkowe i klasyfikacja.
+Natywna historia obejmuje kategorie dziennika; odczyty rotuja w budzecie czasu iOS.
+Bledy pojedynczego zakresu nie zatrzymuja pozostalych. Okres wybierany wedlug dat.
+Nie potwierdzono ostatecznej przyczyny braku konkretnej oceny zgloszonej przez uzytkownika.
+
+Wiadomosci wymagaja NOWEGO eksportu/importu sesji:
+1. Zainstaluj IPA przez AltStore jako aktualizacje.
+2. Otworz Wiadomosci dla kazdego ucznia i sprawdz dostep.
+3. W konfiguracji push wybierz klucz prywatnego dodatku i Zapisz zaszyfrowana sesje.
+4. Wczytaj nowy Buda-session.buda w Buda Powiadomienia.
+5. Uruchom sprawdzanie i zobacz status Wiadomosci.
+Haslo nie jest eksportowane; zaszyfrowany eksport zawiera teraz cookies sesji wiadomosci.
+Stary opis w ekranie konfiguracji IPA nadal mowi, ze wiadomosci nie sa wspierane;
+to nieaktualny tekst. Implementacja i eksport wiadomosci sa w wersji 0.14.
+
+Dodatek: https://buda-powiadomienia.amberline-0653.chatgpt.site
+Harmonogram serwera: co godzine, nie natychmiast.
+Pierwszy odczyt nowej kategorii ustala cichy stan poczatkowy.
+Push otwiera historie dodatku. Historia dodatku i aplikacji sa osobne.
+Natywne sprawdzanie w tle zalezy od iOS; Web Push wymaga dodatku na ekranie glownym.
+Testy i kompilacja PASS; odbior wszystkich kategorii na iPhonie wymaga sprawdzenia.
+IPA: Buda-iOS-0.14.0-unsigned.ipa
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/45146100424
+
+Archiwum wydan:
 BUDA iOS 0.13.0 (build 16) - Moj dzien i nowa os zmian
 
 - Pulpit Moj dzien: gradient, delikatne tlo, data i wybrany uczen.

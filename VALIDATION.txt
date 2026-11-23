@@ -1,3 +1,23 @@
+Buda iOS 0.14.0 (build 17)
+Application source commit: 56d2211
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/45146100424
+Swift history/export/router tests: PASS.
+Kotlin/JVM tests: PASS. Xcode device Release compilation: PASS.
+IPA CRC, version, build and executable: PASS.
+SHA256: 2dae1f81d0799efd8bf37da29e699d13653cf09cdd45266ff2c3ddb0e19f64eb
+Server source: e6ac482f231cb1744a309d22f44e8dd0796617ac
+Server: 19 Node tests PASS; build and private deployment succeeded.
+Live read 2026-11-23: 18 category/student scopes succeeded, one change detected,
+push service accepted delivery, pending queue zero.
+Two message scopes require session re-export from 0.14; no live inbox verification yet.
+Push acceptance is not proof of display on the device.
+No browser/iPhone visual QA in this environment.
+Known UI limitation: old unsupported-messages help sentence remains in IPA.
+Known behavior: first observation of each new category is silent.
+Server and native notification histories remain separate.
+The originally reported missing grade has not been traced conclusively.
+
+Previous validation:
 Buda iOS 0.13.0 (build 16)
 Application source commit: 8a28b488f4a39a1adc2b7aaeb4badd7f8d3e0dec
 Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/43415329487
