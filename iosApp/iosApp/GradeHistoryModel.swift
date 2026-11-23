@@ -13,6 +13,7 @@ struct GradeHistoryEntry: Decodable, Identifiable {
     let at: String
     let before: HistoricalGrade?
     let after: HistoricalGrade
+    var category: String?
     var accountKey: String?
     var studentFilterKey: String { accountKey ?? student }
     var detectedDate: Date? {
@@ -23,6 +24,7 @@ struct GradeHistoryEntry: Decodable, Identifiable {
         return formatter.date(from: at)
     }
     var changeLabel: String {
+        if let category, category != "Oceny" { return before == nil ? "Nowy wpis: " + category : "Zmiana: " + category }
         guard let old = before else { return "Nowa ocena" }
         var parts: [String] = []
         if old.content != after.content { parts.append("Ocena") }
@@ -32,6 +34,7 @@ struct GradeHistoryEntry: Decodable, Identifiable {
         return parts.isEmpty ? "Zmiana szczegółów" : parts.joined(separator: " · ")
     }
     var preview: String {
+        if let category, category != "Oceny" { return category + ": " + after.content }
         guard let old = before else { return "Nowa ocena: \(after.content)" }
         return old.content == after.content ? "Ocena \(after.content) · \(changeLabel)" : "\(old.content) → \(after.content)"
     }
@@ -65,7 +68,7 @@ func filteredGradeHistory(_ entries: [GradeHistoryEntry], readIDs: Set<String>, 
 }
 func gradeBannerBody(entries: [GradeHistoryEntry], total: Int, details: Bool) -> String {
     guard details, let first = entries.first else {
-        return "Wykryto zmian ocen: \(total). Dotknij, aby zobaczyć zapisane szczegóły."
+        return "Wykryto zmian w dzienniku: \(total). Dotknij, aby zobaczyć zapisane szczegóły."
     }
     // Do not include comments or descriptions on the lock screen.
     let summary = "\(first.student) · \(first.after.subject): \(first.preview)"

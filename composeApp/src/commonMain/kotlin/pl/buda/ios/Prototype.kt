@@ -87,7 +87,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
   val student=mutable.value.students.getOrNull(index) ?: return
   job?.cancel()
   messages.use(student)
-  val period=student.account.periods?.firstOrNull { it.current==true } ?: student.account.periods?.lastOrNull()
+  val period=currentPeriod(student.account.periods.orEmpty(),Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date)
   mutable.value=mutable.value.copy(selected=index,periodId=period?.id,section=target,cachedAt=null,dashboard=null,grades=emptyList(),rows=emptyList(),error=null,busy=false)
   save();refresh()
  }

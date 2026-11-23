@@ -9,7 +9,7 @@ import CryptoKit
   let publicKey = SecKeyCopyPublicKey(privateKey)!
   let publicData = SecKeyCopyExternalRepresentation(publicKey,&error)! as Data
   let keyFile = try JSONSerialization.data(withJSONObject:["version":1,"publicKey":publicData.base64EncodedString()])
-  let session = #"{"version":1,"students":[{"account":{"Pupil":{"Id":1}},"credential":{"privateKey":"synthetic","password":"must-not-export"},"cookies":[{"value":"must-not-export"}]}]}"#
+  let session = #"{"version":1,"students":[{"account":{"Pupil":{"Id":1}},"credential":{"privateKey":"synthetic","password":"must-not-export"},"tenant":"eduvulcan","cookies":[{"name":"session","value":"scoped-cookie","domain":"eduvulcan.pl","path":"/"},{"name":"foreign","value":"must-not-export","domain":"evil.invalid"}]}]}"#
   let exported = try PushSessionExport.encrypt(session:session,keyFile:keyFile)
   let envelope = try JSONSerialization.jsonObject(with:exported) as! [String:Any]
   let wrapped = Data(base64Encoded:envelope["wrappedKey"] as! String)!
@@ -19,8 +19,8 @@ import CryptoKit
   let box = try AES.GCM.SealedBox(nonce:AES.GCM.Nonce(data:nonce),ciphertext:ciphertext.dropLast(16),tag:ciphertext.suffix(16))
   let decoded = try AES.GCM.open(box,using:SymmetricKey(data:raw))
   let text = String(data:decoded,encoding:.utf8)!
-  precondition(!text.contains("must-not-export") && !text.contains("cookies") && !text.contains("password"))
-  precondition(text.contains("synthetic"))
+  precondition(!text.contains("must-not-export") && !text.contains("password"))
+  precondition(text.contains("synthetic") && text.contains("scoped-cookie") && text.contains("cookies"))
   do { _ = try PushSessionExport.encrypt(session:"KEYCHAIN_UNAVAILABLE",keyFile:keyFile);fatalError("Invalid session accepted") } catch {}
   for invalid in [Data("not json".utf8), Data(#"{"version":2,"publicKey":"invalid"}"#.utf8)] {
    do { _ = try PushSessionExport.encrypt(session:session,keyFile:invalid);fatalError("Invalid key accepted") }

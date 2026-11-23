@@ -32,7 +32,7 @@ private final class PollCallback: NSObject, GradePollCallback {
     static let shared = GradeNotificationService()
     static let taskID = "pl.buda.ios.prototype.grades"
     @Published private(set) var enabled = UserDefaults.standard.bool(forKey: "gradeChecksEnabled")
-    @Published private(set) var status = "Sprawdzanie ocen nie zostało jeszcze uruchomione."
+    @Published private(set) var status = "Sprawdzanie dziennika nie zostało jeszcze uruchomione."
     @Published private(set) var running = false
     @Published var bannerDetails = UserDefaults.standard.bool(forKey: "gradeBannerDetails") {
         didSet { UserDefaults.standard.set(bannerDetails, forKey: "gradeBannerDetails") }
@@ -119,7 +119,7 @@ private final class PollCallback: NSObject, GradePollCallback {
         }
         let sessionProtected = KeychainVault().setBackgroundAccess(false)
         let baselineProtected = baseline.setBackgroundAccess(false)
-        status = sessionProtected && baselineProtected ? "Sprawdzanie ocen wyłączone." : "Sprawdzanie wyłączone; nie udało się przywrócić dostępu do sesji tylko po odblokowaniu. Odblokuj telefon i wyłącz ponownie."
+        status = sessionProtected && baselineProtected ? "Sprawdzanie dziennika wyłączone." : "Sprawdzanie wyłączone; nie udało się przywrócić dostępu do sesji tylko po odblokowaniu. Odblokuj telefon i wyłącz ponownie."
     }
     func clear() {
         disable()
@@ -149,7 +149,7 @@ private final class PollCallback: NSObject, GradePollCallback {
         guard enabled, !running else { completed?(false); return }
         running = true; completion = completed; generation += 1
         let token = generation
-        status = "Sprawdzam oceny zapisanych uczniów…"
+        status = "Sprawdzam dane zapisanych uczniów…"
         poller.start(callback: PollCallback { raw in DispatchQueue.main.async {
             guard self.running, self.generation == token else { return }
             guard let data = raw.data(using: .utf8), let result = try? JSONDecoder().decode(PollResult.self, from: data) else {
@@ -166,10 +166,10 @@ private final class PollCallback: NSObject, GradePollCallback {
             }
             @MainActor func save(_ delivered: Bool) {
                 guard self.running, self.generation == token else { return }
-                guard delivered else { self.status = "iOS nie przyjął banera. Szczegóły zmiany są zapisane w Historii zmian ocen."; self.finish(false); return }
+                guard delivered else { self.status = "iOS nie przyjął banera. Szczegóły zmiany są zapisane w Centrum zmian."; self.finish(false); return }
 
                 self.lastCheck = Date()
-                self.status = "Sprawdzono kont: \(result.accounts). Zmiany ocen: \(result.changes). Błędy kont: \(result.failures). Ostatnio: \(Date().formatted(date: .omitted, time: .shortened))."
+                self.status = "Sprawdzono zakresów: \(result.accounts). Zmiany dziennika: \(result.changes). Błędy zakresów: \(result.failures). Ostatnio: \(Date().formatted(date: .omitted, time: .shortened))."
                 self.finish(result.failures == 0)
             }
             guard self.baseline.write(value: result.snapshot) else { self.status = "Nie udało się zapisać szczegółów zmiany. Nie wysłano banera."; self.finish(false); return }
@@ -177,7 +177,7 @@ private final class PollCallback: NSObject, GradePollCallback {
             let entries = (try? HistoryEnvelope.entries(from: result.snapshot)) ?? []
             let newEntries = Array(entries.prefix(min(result.changes, 100)))
             let body = gradeBannerBody(entries: newEntries, total: result.changes, details: self.bannerDetails)
-            self.post(id: "grades-" + UUID().uuidString, title: "Buda - zmiany ocen", body: body, batch: newEntries.first?.at) { ok in DispatchQueue.main.async { save(ok) } }
+            self.post(id: "grades-" + UUID().uuidString, title: "Buda - zmiany w dzienniku", body: body, batch: newEntries.first?.at) { ok in DispatchQueue.main.async { save(ok) } }
         } })
     }
     private func finish(_ success: Bool) {

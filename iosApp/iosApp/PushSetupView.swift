@@ -49,7 +49,7 @@ struct EncryptedSessionDocument: FileDocument {
                 Text("4. Wczytaj ten plik w dodatku, włącz powiadomienia i wyślij test.")
             }
             Section("Twoja prywatność") {
-                Text("Eksport pozwoli serwerowi dodatku odczytywać dane zalogowanych uczniów. Hasło i pliki cookie wiadomości nie są eksportowane. Sesja zostanie zaszyfrowana przed zapisaniem pliku.")
+                Text("Eksport pozwoli serwerowi dodatku odczytywać dane zalogowanych uczniów. Hasło nie jest eksportowane. Plik zawiera sesję wiadomości (cookies), aby dodatek mógł sprawdzać skrzynkę. Sesja zostanie zaszyfrowana przed zapisaniem pliku.")
                 Text("Wybierz wyłącznie klucz pobrany ze swojej prywatnej strony Budy. Klucz wskazuje, który serwer będzie mógł odczytać sesję.")
                 Toggle("Zgadzam się przekazać sesję do mojego dodatku powiadomień", isOn: $consent)
                 Button("Wybierz klucz i zaszyfruj sesję", systemImage: "lock.doc") { document = nil; message = ""; selecting = true }.disabled(!consent || exporting)
