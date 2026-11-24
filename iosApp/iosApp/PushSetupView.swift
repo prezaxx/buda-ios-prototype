@@ -56,7 +56,7 @@ struct EncryptedSessionDocument: FileDocument {
                 Text("Dostęp można usunąć przyciskiem „Usuń dane i odłącz urządzenia” w dodatku. Wylogowanie w Budzie nie usuwa kopii sesji na serwerze.")
             }
             Section("Zakres wersji próbnej") {
-                Text("Oceny, frekwencja, sprawdziany, zadania, uwagi i ogłoszenia. Wiadomości nie są jeszcze objęte tym dodatkiem.")
+                Text("Oceny, wiadomości, frekwencja, sprawdziany, zadania, uwagi, ogłoszenia i zmiany planu. Po odnowieniu dostępu do wiadomości zapisz nową sesję i wczytaj ją w dodatku.")
                 Text("Pierwsze pobranie ustala stan początkowy bez alertów o starych danych. Powiadomienie otwiera historię w dodatku. Sprawdź test również po zablokowaniu iPhone’a.")
             }
         }

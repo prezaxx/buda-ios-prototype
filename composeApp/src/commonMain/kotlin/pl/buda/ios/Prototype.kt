@@ -33,6 +33,11 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
    if(it.credential.deviceId==source.credential.deviceId && it.account==source.account) it.copy(mailboxKey=key) else it
   })
   save()
+ },onSessionUpdated={ source,cookies ->
+  mutable.value=mutable.value.copy(students=mutable.value.students.map {
+   if(it.credential.deviceId==source.credential.deviceId && it.account==source.account) it.copy(cookies=cookies) else it
+  })
+  save()
  })
  init {
   try {

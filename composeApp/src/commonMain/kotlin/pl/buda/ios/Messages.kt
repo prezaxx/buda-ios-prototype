@@ -15,7 +15,7 @@ data class MailItem(val key:String,val id:Int,val title:String,val sender:String
 data class MailAttachment(val name:String,val url:String?)
 data class MailDetail(val key:String,val title:String,val sender:String,val recipients:String,val date:String,val text:String,val attachments:List<MailAttachment>)
 enum class MailFolder(val label:String,val endpoint:String) { INBOX("Odebrane","OdebraneSkrzynka"), SENT("Wysłane","WyslaneSkrzynka") }
-data class MailState(val composing:Boolean=false,val draft:MailDraft?=null,val recipients:List<MailRecipient> = emptyList(),val info:String?=null,val folder:MailFolder=MailFolder.INBOX,val busy:Boolean=false,val boxes:List<Mailbox> = emptyList(),val box:String?=null,val items:List<MailItem> = emptyList(),val detail:MailDetail?=null,val more:Boolean=false,val error:String?=null,val loaded:Boolean=false)
+data class MailState(val loginRequired:Boolean=false,val composing:Boolean=false,val draft:MailDraft?=null,val recipients:List<MailRecipient> = emptyList(),val info:String?=null,val folder:MailFolder=MailFolder.INBOX,val busy:Boolean=false,val boxes:List<Mailbox> = emptyList(),val box:String?=null,val items:List<MailItem> = emptyList(),val detail:MailDetail?=null,val more:Boolean=false,val error:String?=null,val loaded:Boolean=false)
 class MessageFormatException:Exception("UnsupportedMessageFormat")
 private fun JsonElement.objectRows():List<JsonObject> = (this as? JsonArray ?: throw MessageFormatException()).map { it as? JsonObject ?: throw MessageFormatException() }
 private fun JsonObject.required(key:String)=text(key).ifBlank { throw MessageFormatException() }
@@ -64,7 +64,7 @@ internal fun resolveMailbox(boxes:List<Mailbox>,savedKey:String?,accountKey:Stri
  val expected=name(accountName)
  return if(expected.isBlank()) null else boxes.singleOrNull { name(it.name)==expected }?.key
 }
-class MessagesController(private val scope:CoroutineScope,private val local:LocalDataStore=LocalDataStore(MemoryVault()),private val onMailboxChosen:(Student,String)->Unit={ _,_ -> }) {
+class MessagesController(private val scope:CoroutineScope,private val local:LocalDataStore=LocalDataStore(MemoryVault()),private val onMailboxChosen:(Student,String)->Unit={ _,_ -> },private val onSessionUpdated:(Student,List<StoredCookie>)->Unit={ _,_ -> }) {
  private val mutable=MutableStateFlow(MailState())
  val state=mutable.asStateFlow()
  private var student:Student?=null
@@ -85,14 +85,42 @@ class MessagesController(private val scope:CoroutineScope,private val local:Loca
  private fun request(action:suspend CoroutineScope.()->Unit) {
   cancel();mutable.value=mutable.value.copy(busy=true,error=null)
   job=scope.launch {
-   try { action();ensureActive();mutable.value=mutable.value.copy(busy=false) }
+   try {
+    action();ensureActive()
+    val source=student
+    val cookies=api?.sessionCookies()?.map(StoredCookie::from)
+    if(source!=null && !cookies.isNullOrEmpty()) { onSessionUpdated(source,cookies);student=source.copy(cookies=cookies) }
+    mutable.value=mutable.value.copy(busy=false,loginRequired=false)
+   }
    catch(e:CancellationException) { throw e }
    catch(e:Exception) {
     ensureActive()
     val code=(e as? io.github.szpontium.api.prometheus.MessagesAccessException)?.code ?: e::class.simpleName.orEmpty()
     api?.close();api=null
-    mutable.value=mutable.value.copy(busy=false,error=if(mutable.value.draft?.uncertain==true) "Wynik wysłania jest nieznany ($code). Sprawdź folder Wysłane przed kolejną próbą. Szkic zachowano; nie ponawiamy automatycznie." else "Nie udało się pobrać wiadomości. Kod: $code. Ponów pobieranie. Jeśli błąd wraca, podaj ten kod — nie zawiera danych logowania. Oceny pozostają dostępne.")
+    mutable.value=mutable.value.copy(busy=false,loginRequired=code=="SSO_LOGIN_REQUIRED",error=if(code=="SSO_LOGIN_REQUIRED") "Sesja wiadomości wygasła lub wymaga ponownego logowania. Odnów dostęp poniżej. Oceny i zapisane dane pozostają dostępne. Po odnowieniu wyeksportuj nową sesję do dodatku powiadomień." else if(mutable.value.draft?.uncertain==true) "Wynik wysłania jest nieznany ($code). Sprawdź folder Wysłane przed kolejną próbą. Szkic zachowano; nie ponawiamy automatycznie." else "Nie udało się pobrać wiadomości. Kod: $code. Ponów pobieranie. Jeśli błąd wraca, podaj ten kod — nie zawiera danych logowania. Oceny pozostają dostępne.")
    }
+  }
+ }
+ fun renewSession(email:String,password:String) {
+  val source=student ?: return
+  if(email.isBlank() || password.isBlank()) { mutable.value=mutable.value.copy(error="Podaj e-mail i hasło konta eduVULCAN.");return }
+  request {
+   val helper=io.github.szpontium.api.prometheus.PrometheusLoginHelper(autoAcceptConsent=false)
+   var fresh:PrometheusMessagesApi?=null
+   try {
+    val result=helper.login(email.trim(),password,deviceModel="iPhone")
+    val candidate=PrometheusMessagesApi(tenant=source.tenant ?: error("MissingTenant"),initialCookies=result.cookies)
+    fresh=candidate
+    val boxes=parseMailboxes(candidate.readPayload("Skrzynki"))
+    val key=resolveMailbox(boxes,source.mailboxKey,source.account.messageBox?.globalKey,source.account.messageBox?.name)
+      ?: error("AccountMailboxMismatch")
+    ensureActive()
+    api?.close();api=candidate;fresh=null
+    val cookies=candidate.sessionCookies().map(StoredCookie::from)
+    onSessionUpdated(source,cookies);student=source.copy(cookies=cookies)
+    mutable.value=MailState(boxes=boxes,box=key,info="Dostęp odnowiony. Wyeksportuj nową sesję i wczytaj ją w dodatku powiadomień.")
+    loadInbox(key,false)
+   } finally { fresh?.close();helper.close() }
   }
  }
  fun refresh() {

@@ -99,26 +99,45 @@ class PrometheusMessagesApi(
 
         }
 
-        val prometheusEncoded = UrlEncoderUtil.encode("https://eduvulcan.pl")
-        val ssoEncoded = UrlEncoderUtil.encode(ssoBaseUrl)
-        val studentEncoded = UrlEncoderUtil.encode("https://uczen.eduvulcan.pl")
+        // Reuse the message-domain session before restarting the full identity-provider flow.
+        if (!loadAppTokens()) {
+            val prometheusEncoded = UrlEncoderUtil.encode("https://eduvulcan.pl")
+            val ssoEncoded = UrlEncoderUtil.encode(ssoBaseUrl)
+            val studentEncoded = UrlEncoderUtil.encode("https://uczen.eduvulcan.pl")
 
-        // First SSO flow to authenticate the client in the SSO domain
-        val firstAuthUrl = "https://eduvulcan.pl/fs/ls?wa=wsignin1.0&wtrealm=$ssoEncoded%2F${tenant}%2FFs%2FLs%3Fwa%3Dwsignin1.0%26wtrealm%3D$studentEncoded%2F${tenant}%2FAccount%2FLogin%3FreturnUrl%3D$prometheusEncoded%26wctx%3Dauth%3DstudentEV%26nslo%3D1&wctx=nslo%3D1"
-        authorizePrometheus(firstAuthUrl)
+            // First SSO flow to authenticate the client in the SSO domain
+            val firstAuthUrl = "https://eduvulcan.pl/fs/ls?wa=wsignin1.0&wtrealm=$ssoEncoded%2F${tenant}%2FFs%2FLs%3Fwa%3Dwsignin1.0%26wtrealm%3D$studentEncoded%2F${tenant}%2FAccount%2FLogin%3FreturnUrl%3D$prometheusEncoded%26wctx%3Dauth%3DstudentEV%26nslo%3D1&wctx=nslo%3D1"
+            authorizePrometheus(firstAuthUrl)
 
-        // Second SSO flow to authenticate the client in the messages domain
-        val authorizeUrl = "$ssoBaseUrl/$tenant/Fs/Ls?wa=wsignin1.0&wtrealm=$messagesBaseUrl/$tenant/Account/Login?returnUrl=/$tenant/App&wctx=auth=studentEV&nslo=1"
-        authorizePrometheus(authorizeUrl)
+            // Second SSO flow to authenticate the client in the messages domain
+            val authorizeUrl = "$ssoBaseUrl/$tenant/Fs/Ls?wa=wsignin1.0&wtrealm=$messagesBaseUrl/$tenant/Account/Login?returnUrl=/$tenant/App&wctx=auth=studentEV&nslo=1"
+            authorizePrometheus(authorizeUrl)
 
-        // Fetch tokens from App
-        val appScript = Ksoup.parse(ssoRequest(httpClient,"$messagesBaseUrl/$tenant/App").bodyAsText())
-            .select("script").joinToString("\n") { it.html() }
-
-        antiForgeryToken = messagesScriptValue(appScript,"antiForgeryToken")
-        appGuid = messagesScriptValue(appScript,"appGuid")
-        if(antiForgeryToken.isBlank() || appGuid.isBlank()) throw MessagesAccessException("SSO_APP_TOKENS")
+            if (!loadAppTokens()) throw MessagesAccessException("SSO_LOGIN_REQUIRED")
+        }
         isInitialized = true
+    }
+
+
+    private suspend fun loadAppTokens(): Boolean {
+        val doc = Ksoup.parse(ssoRequest(httpClient,"$messagesBaseUrl/$tenant/App").bodyAsText())
+        if (doc.select("input[type=password]").isNotEmpty()) return false
+        val script=doc.select("script").joinToString("\n") { it.html() }
+        return try {
+            antiForgeryToken=messagesScriptValue(script,"antiForgeryToken")
+            appGuid=messagesScriptValue(script,"appGuid")
+            antiForgeryToken.isNotBlank() && appGuid.isNotBlank()
+        } catch(e:MessagesAccessException) { false }
+    }
+
+    suspend fun sessionCookies(): List<Cookie> {
+        val collected=mutableListOf<Cookie>()
+        for(host in listOf("eduvulcan.pl","uczen.eduvulcan.pl","wiadomosci.eduvulcan.pl","dziennik-logowanie.vulcan.net.pl")) {
+            for(path in listOf("/", "/$tenant/", "/$tenant/App", "/$tenant/api/Skrzynki")) {
+                collected+=cookieStorage.get(Url("https://$host$path"))
+            }
+        }
+        return collected.distinctBy { listOf(it.name,it.domain,it.path) }
     }
 
     private suspend fun authorizePrometheus(url: String) {

@@ -10,6 +10,18 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 
 @Composable fun MessagesPane(model:MessagesController,modifier:Modifier=Modifier) {
+ var renew by remember { mutableStateOf(false) }
+ var loginEmail by remember { mutableStateOf("") }
+ var loginPassword by remember { mutableStateOf("") }
+ if(renew) AlertDialog(onDismissRequest={renew=false;loginPassword=""},
+  title={Text("Odnów dostęp do wiadomości")},
+  text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+   Text("Użyj tego samego konta eduVULCAN. Hasło nie zostanie zapisane.")
+   OutlinedTextField(loginEmail,{loginEmail=it},label={Text("E-mail")},singleLine=true)
+   OutlinedTextField(loginPassword,{loginPassword=it},label={Text("Hasło")},singleLine=true,visualTransformation=androidx.compose.ui.text.input.PasswordVisualTransformation())
+  }},
+  confirmButton={TextButton(onClick={model.renewSession(loginEmail,loginPassword);loginPassword="";renew=false}){Text("Odnów dostęp")}},
+  dismissButton={TextButton(onClick={renew=false;loginPassword=""}){Text("Anuluj")}})
  val state by model.state.collectAsState()
  if(state.composing) { MailComposer(model,state,modifier);return }
  var query by remember(state.box,state.folder) { mutableStateOf("") }
@@ -33,7 +45,8 @@ import androidx.compose.ui.unit.dp
   }
   state.error?.let { message -> item {
    Card(colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.errorContainer)) {
-    Column(Modifier.padding(14.dp)) { Text(message);TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Ponów pobieranie") } }
+    Column(Modifier.padding(14.dp)) { Text(message);TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Ponów pobieranie") }
+     if(state.loginRequired) Button(onClick={renew=true},enabled=!state.busy) { Text("Odnów dostęp do wiadomości") } }
    }
   } }
   if(linkError) item { Text("Nie udało się otworzyć załącznika.",color=MaterialTheme.colorScheme.error) }

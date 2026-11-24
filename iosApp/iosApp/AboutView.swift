@@ -8,6 +8,7 @@ enum BudaBuild {
 @MainActor struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var service = GradeNotificationService.shared
+    @AppStorage("budaAppearance") private var appearance = "system"
     @State private var copied = false
     var body: some View {
         List {
@@ -22,17 +23,25 @@ enum BudaBuild {
                     Text("Nieoficjalny klient eduVULCAN na iPhone’a.")
                 }.padding(.vertical, 12)
             }
-            Section("Nowe w 0.13") {
-                Label("Pulpit Mój dzień z gradientem i kartami ładowania", systemImage: "sun.max")
-                Label("Nowe karty ocen i szczegóły wysuwane od dołu", systemImage: "rectangle.bottomthird.inset.filled")
-                Label("Oś zmian: Dzisiaj, Wczoraj i wcześniejsze dni", systemImage: "clock")
-                Label("Czytelne porównanie oceny przed i po zmianie", systemImage: "arrow.left.arrow.right")
+            Section("Wygląd") {
+                Picker("Motyw", selection: $appearance) {
+                    Label("Jak iPhone", systemImage: "circle.lefthalf.filled").tag("system")
+                    Label("Jasny", systemImage: "sun.max").tag("light")
+                    Label("Ciemny", systemImage: "moon.stars").tag("dark")
+                }
+                Text("Twój wybór obejmuje dziennik, oceny i ustawienia. Kolory ocen nauczyciela są zachowane.").font(.footnote)
+            }
+            Section("Nowe w 0.15") {
+                Label("Jasny i ciemny motyw do wyboru", systemImage: "circle.lefthalf.filled")
+                Label("Odnowienie dostępu do wiadomości bez usuwania ocen", systemImage: "key")
+                Label("Zapisywanie odświeżonej sesji skrzynki", systemImage: "arrow.trianglehead.2.clockwise")
+                Label("Powiadomienia o różnych zmianach dziennika", systemImage: "bell.badge")
             }
             Section("Twoje powiadomienia") {
                 NavigationLink("Powiadomienia Web Push") { PushSetupView() }
-                LabeledContent("Sprawdzanie ocen", value: service.enabled ? "Włączone" : "Wyłączone")
+                LabeledContent("Sprawdzanie dziennika", value: service.enabled ? "Włączone" : "Wyłączone")
                 Text(service.lastResult).font(.footnote)
-                NavigationLink("Centrum zmian ocen") {
+                NavigationLink("Centrum zmian") {
                     GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = nil }
                 }
                 Text("Lokalne sprawdzanie zależy od iOS. Oddzielny dodatek Web Push wymaga połączenia sesji i zgody na powiadomienia. Harmonogram dodatku działa raz na godzinę, a alerty otwierają historię na stronie dodatku.").font(.footnote)

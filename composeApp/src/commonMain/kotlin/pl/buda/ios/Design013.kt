@@ -24,7 +24,9 @@ import kotlinx.datetime.LocalDate
     drawCircle(palette.primary.copy(alpha=0.05f),radius=size.width*0.23f,center=Offset(size.width*0.95f,size.height*0.9f))
    }
    Column(Modifier.padding(24.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-    Text("TWÓJ DZIEŃ, TWÓJ RYTM",style=MaterialTheme.typography.labelSmall,color=palette.onPrimaryContainer)
+    Surface(shape=MaterialTheme.shapes.small,color=palette.surface.copy(alpha=0.75f)) {
+     Text("DZIENNIK / MÓJ DZIEŃ",modifier=Modifier.padding(horizontal=12.dp,vertical=7.dp),style=MaterialTheme.typography.labelMedium,color=palette.primary)
+    }
     Text("Mój dzień",style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.ExtraBold,color=palette.onPrimaryContainer)
     Text(dayTitle(today),style=MaterialTheme.typography.titleMedium,color=palette.onPrimaryContainer)
     if(student.isNotBlank()) Text(student,style=MaterialTheme.typography.bodyMedium,color=palette.onPrimaryContainer)
