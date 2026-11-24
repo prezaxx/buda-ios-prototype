@@ -31,7 +31,9 @@ enum BudaBuild {
                 }
                 Text("Twój wybór obejmuje dziennik, oceny i ustawienia. Kolory ocen nauczyciela są zachowane.").font(.footnote)
             }
-            Section("Nowe w 0.15") {
+            Section("Nowe w 0.15.1") {
+                Label("Ręczne sprawdzanie niezależne od przełącznika powiadomień", systemImage: "arrow.clockwise")
+                Label("Główny dodatek push bez konta ChatGPT", systemImage: "person.badge.key")
                 Label("Jasny i ciemny motyw do wyboru", systemImage: "circle.lefthalf.filled")
                 Label("Odnowienie dostępu do wiadomości bez usuwania ocen", systemImage: "key")
                 Label("Zapisywanie odświeżonej sesji skrzynki", systemImage: "arrow.trianglehead.2.clockwise")
@@ -44,7 +46,7 @@ enum BudaBuild {
                 NavigationLink("Centrum zmian") {
                     GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = nil }
                 }
-                Text("Lokalne sprawdzanie zależy od iOS. Oddzielny dodatek Web Push wymaga połączenia sesji i zgody na powiadomienia. Harmonogram dodatku działa raz na godzinę, a alerty otwierają historię na stronie dodatku.").font(.footnote)
+                Text("Lokalne sprawdzanie zależy od iOS. Oddzielny dodatek Web Push wymaga połączenia sesji i zgody na powiadomienia. Nowy pilotaż odczytuje kategorie partiami. Alerty otwierają historię dodatku, oddzielną od lokalnego Centrum zmian.").font(.footnote)
             }
             Section("Diagnostyka") {
                 Text(service.diagnostics).font(.footnote).textSelection(.enabled)

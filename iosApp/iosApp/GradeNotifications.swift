@@ -74,6 +74,7 @@ private final class PollCallback: NSObject, GradePollCallback {
     private var generation = 0
     private var permissionEpoch = 0
     private var timer: Timer?
+    private var watchdog: Timer?
     private var lastCheck = Date.distantPast
 
     func configure() {
@@ -145,11 +146,24 @@ private final class PollCallback: NSObject, GradePollCallback {
         do { try BGTaskScheduler.shared.submit(request) }
         catch { status = "iOS nie przyjął sprawdzenia w tle. Sprawdzanie po otwarciu aplikacji pozostaje dostępne." }
     }
-    func check(completed: ((Bool) -> Void)? = nil) {
-        guard enabled, !running else { completed?(false); return }
+    func checkNow() { check(manual: true) }
+    func check(manual: Bool = false, completed: ((Bool) -> Void)? = nil) {
+        guard !running else { completed?(false); return }
+        guard manual || enabled else { completed?(false); return }
         running = true; completion = completed; generation += 1
         let token = generation
-        status = "Sprawdzam dane zapisanych uczniów…"
+        status = "Sprawdzam dziennik zapisanych uczniów…"
+        lastResult = Date().formatted(date: .abbreviated, time: .shortened) + " — sprawdzanie rozpoczęte."
+        UserDefaults.standard.set(lastResult, forKey: "gradeLastResult")
+        watchdog?.invalidate()
+        watchdog = Timer.scheduledTimer(withTimeInterval: 35, repeats: false) { _ in
+            DispatchQueue.main.async {
+                guard self.running, self.generation == token else { return }
+                self.poller.cancel()
+                self.status = "Sprawdzanie nie odpowiedziało w ciągu 35 sekund. Spróbuj ponownie; historia została zachowana."
+                self.finish(false)
+            }
+        }
         poller.start(callback: PollCallback { raw in DispatchQueue.main.async {
             guard self.running, self.generation == token else { return }
             guard let data = raw.data(using: .utf8), let result = try? JSONDecoder().decode(PollResult.self, from: data) else {
@@ -173,7 +187,8 @@ private final class PollCallback: NSObject, GradePollCallback {
                 self.finish(result.failures == 0)
             }
             guard self.baseline.write(value: result.snapshot) else { self.status = "Nie udało się zapisać szczegółów zmiany. Nie wysłano banera."; self.finish(false); return }
-            if result.changes == 0 { save(true); return }
+            // Manual reads save history without requiring or enabling notification permission.
+            if result.changes == 0 || !self.enabled { save(true); return }
             let entries = (try? HistoryEnvelope.entries(from: result.snapshot)) ?? []
             let newEntries = Array(entries.prefix(min(result.changes, 100)))
             let body = gradeBannerBody(entries: newEntries, total: result.changes, details: self.bannerDetails)
@@ -181,6 +196,7 @@ private final class PollCallback: NSObject, GradePollCallback {
         } })
     }
     private func finish(_ success: Bool) {
+        watchdog?.invalidate(); watchdog = nil
         lastResult = Date().formatted(date: .abbreviated, time: .shortened) + " — " + status
         UserDefaults.standard.set(lastResult, forKey: "gradeLastResult")
         running = false; let callback = completion; completion = nil; callback?(success) }
@@ -243,17 +259,19 @@ final class NativeNotificationControls: NSObject, NotificationControls {
             Form {
                 Section("Powiadomienia Web Push") {
                     NavigationLink("Połącz sesję z dodatkiem powiadomień") { PushSetupView() }
-                    Text("Samo włączenie lokalnych powiadomień nie uruchamia dodatku. Potrzebne są eksport sesji, wczytanie jej na stronie i zgoda na powiadomienia z ikony dodatku. Harmonogram serwera sprawdza dziennik raz na godzinę.")
+                    Text("Samo włączenie lokalnych powiadomień nie uruchamia dodatku. Potrzebne są eksport sesji, wczytanie jej na stronie i zgoda na powiadomienia z ikony dodatku. Nowy pilotaż bez ChatGPT sprawdza kategorie partiami; pełny cykl może potrwać kilkadziesiąt minut.")
                         .font(.footnote)
                 }
                 Section("Historia") {
-                    NavigationLink("Centrum zmian ocen") { GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = nil } }
+                    NavigationLink("Centrum zmian") { GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = nil } }
                     Text("Szczegóły nowych alertów: uczeń, przedmiot, ocena i zmieniony opis lub komentarz.").font(.footnote)
                 }
-                Section("Powiadomienia o ocenach") {
+                Section("Lokalne sprawdzanie dziennika") {
                     Toggle("Włącz lokalne powiadomienia", isOn: Binding(get: { service.enabled }, set: { service.setEnabled($0) }))
-                    Text("Sprawdzamy oceny zapisanych uczniów. Pierwsze pobranie zapisuje punkt odniesienia bez wysyłania starych ocen jako nowych.")
-                    Button("Sprawdź teraz") { service.check() }.disabled(!service.enabled || service.running)
+                    Text("Sprawdzamy zmiany dziennika zapisanych uczniów. Pierwsze pobranie każdej kategorii zapisuje punkt odniesienia bez alertów o starych wpisach.")
+                    Button(service.running ? "Sprawdzanie…" : "Sprawdź dziennik teraz") { service.checkNow() }.disabled(service.running)
+                    if service.running { ProgressView("Pobieranie danych…") }
+                    if !service.enabled { Text("Ręczne sprawdzanie działa także przy wyłączonych lokalnych powiadomieniach. Wynik i szczegóły zapiszą się w Centrum zmian.").font(.footnote) }
                     Button("Test banera i dźwięku") { service.testBanner() }
                     Button("Test za 15 sekund — zablokuj ekran") { service.testBanner(delay: 15) }
                     Text(service.status).font(.footnote)
@@ -275,7 +293,7 @@ final class NativeNotificationControls: NSObject, NotificationControls {
                 Section("Jak to działa") {
                     Text("Po otwarciu i co 5 minut w aktywnej aplikacji. W tle iOS sam decyduje, czy i kiedy uruchomi sprawdzenie. Nie gwarantujemy terminów ani pracy po wymuszonym zamknięciu aplikacji.")
                     Text("Po włączeniu sesja i historia porównań pozostają w pęku kluczy tego iPhone’a, ale są dostępne dla Budy także pod blokadą po pierwszym odblokowaniu od restartu. Wyłączenie przywraca dostęp tylko po odblokowaniu. Włącz Zapamiętaj sesję i odświeżanie w tle w iOS.")
-                    Text("To powiadomienia lokalne, nie APNs push. Serwerowy push nie jest uruchomiony w tej wersji.").fontWeight(.semibold)
+                    Text("Ten przełącznik steruje lokalnym sprawdzaniem. Serwerowy Web Push działa osobno w dodatku na ekranie początkowym.").fontWeight(.semibold)
                     Button("Ustawienia iOS") { if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) } }
                 }
             }.onAppear { service.refreshDiagnostics() }.onChange(of: phase) { value in if value == .active { service.refreshDiagnostics() } }.navigationTitle("Dzwonek").toolbar { ToolbarItem(placement: .confirmationAction) { Button("Gotowe") { dismiss() } } }

@@ -14,14 +14,16 @@ struct EncryptedSessionDocument: FileDocument {
     @State private var document: EncryptedSessionDocument?
     @State private var message = ""
     @State private var consent = false
-    private let site = URL(string: "https://buda-powiadomienia.amberline-0653.chatgpt.site")!
+    private let site = URL(string: "https://buda-push-pilot.prezaxx-buda.workers.dev")!
+    private let legacySite = URL(string: "https://buda-powiadomienia.amberline-0653.chatgpt.site")!
     var body: some View {
         ScrollViewReader { proxy in
         List {
             Section {
                 Label("Buda Powiadomienia", systemImage: "bell.badge.fill").font(.title2.bold()).foregroundStyle(.teal)
-                Text("Dodatek na ekranie głównym iPhone’a odbiera Web Push niezależnie od otwarcia Budy. Wymaga połączenia sesji i zgody na powiadomienia. Harmonogram serwera sprawdza dziennik raz na godzinę; alerty nie są natychmiastowe.")
-                Link("Otwórz prywatny dodatek", destination: site)
+                Text("Dodatek na ekranie głównym iPhone’a odbiera Web Push niezależnie od otwarcia Budy. Wymaga połączenia sesji i zgody na powiadomienia. Nowy pilotaż nie wymaga konta ChatGPT. Ma limit pięciu kont. Odczyty odbywają się partiami, a pełny cykl dla dwóch uczniów może potrwać około 50 minut; alerty nie są natychmiastowe.")
+                Link("Otwórz powiadomienia bez ChatGPT", destination: site)
+                Text("buda-push-pilot.prezaxx-buda.workers.dev").font(.footnote).textSelection(.enabled)
             }
             if let prepared = document {
                 Section("Plik sesji jest gotowy") {
@@ -44,16 +46,21 @@ struct EncryptedSessionDocument: FileDocument {
             }
             Section("Połączenie krok po kroku") {
                 Text("1. Otwórz dodatek w Safari i dodaj go do ekranu początkowego.")
-                Text("2. Zaloguj się, pobierz klucz połączenia i zapisz go w Plikach.")
+                Text("2. Utwórz własne konto kluczem dostępu (Face ID lub kod iPhone’a). Zapisz kod odzyskiwania. Pobierz klucz połączenia z nowego dodatku.")
                 Text("3. Wybierz klucz poniżej. Po zamknięciu wyboru pliku naciśnij Zapisz zaszyfrowaną sesję.")
                 Text("4. Wczytaj ten plik w dodatku, włącz powiadomienia i wyślij test.")
             }
             Section("Twoja prywatność") {
                 Text("Eksport pozwoli serwerowi dodatku odczytywać dane zalogowanych uczniów. Hasło nie jest eksportowane. Plik zawiera sesję wiadomości (cookies), aby dodatek mógł sprawdzać skrzynkę. Sesja zostanie zaszyfrowana przed zapisaniem pliku.")
-                Text("Wybierz wyłącznie klucz pobrany ze swojej prywatnej strony Budy. Klucz wskazuje, który serwer będzie mógł odczytać sesję.")
+                Text("Wybierz wyłącznie klucz pobrany po zalogowaniu na wybranej stronie Budy. Klucz wskazuje, który serwer będzie mógł odczytać sesję.")
                 Toggle("Zgadzam się przekazać sesję do mojego dodatku powiadomień", isOn: $consent)
                 Button("Wybierz klucz i zaszyfruj sesję", systemImage: "lock.doc") { document = nil; message = ""; selecting = true }.disabled(!consent || exporting)
-                Text("Dostęp można usunąć przyciskiem „Usuń dane i odłącz urządzenia” w dodatku. Wylogowanie w Budzie nie usuwa kopii sesji na serwerze.")
+                Text("Dostęp można usunąć przyciskiem odłączenia dziennika lub usunięcia konta w dodatku. Wylogowanie w Budzie nie usuwa kopii sesji na serwerze.")
+            }
+            Section("Przenosisz się ze starego dodatku?") {
+                Text("Sesje obu serwerów są oddzielne. Pobierz nowy klucz, wyeksportuj sesję ponownie i wczytaj ją na nowej stronie. Samo zainstalowanie aktualizacji nie przenosi danych.")
+                Text("Po sprawdzeniu nowego testu push wstrzymaj stary dodatek, aby uniknąć podwójnych alertów.")
+                Link("Stary prywatny dodatek — wymaga ChatGPT", destination: legacySite)
             }
             Section("Zakres wersji próbnej") {
                 Text("Oceny, wiadomości, frekwencja, sprawdziany, zadania, uwagi, ogłoszenia i zmiany planu. Po odnowieniu dostępu do wiadomości zapisz nową sesję i wczytaj ją w dodatku.")

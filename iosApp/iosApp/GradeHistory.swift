@@ -65,9 +65,11 @@ import SwiftUI
                         LinearGradient(colors: [Color.teal.opacity(0.16), Color.blue.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing)))
 
                 Text(service.lastResult).font(.caption).foregroundStyle(.secondary)
-                Button(service.running ? "Sprawdzanie…" : "Sprawdź oceny teraz", systemImage: "arrow.clockwise") { service.check() }
-                    .disabled(!service.enabled || service.running)
-                if !service.enabled { Text("Włącz sprawdzanie ocen w Dzwonku, aby wykrywać kolejne zmiany.").font(.footnote) }
+                Button(service.running ? "Sprawdzanie…" : "Sprawdź dziennik teraz", systemImage: "arrow.clockwise") { service.checkNow() }
+                    .disabled(service.running)
+                Text(service.status).font(.footnote)
+                if service.running { ProgressView("Pobieranie danych…") }
+                if !service.enabled { Text("Automatyczne sprawdzanie lokalne jest wyłączone. Przycisk powyżej nadal pobierze dane i zapisze wykryte zmiany.").font(.footnote) }
             }
             if let error {
                 Section { Text(error).foregroundStyle(.red); Button("Ponów odczyt historii") { load() } }
@@ -132,7 +134,7 @@ import SwiftUI
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: unreadOnly)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: student)
         .searchable(text: $query, prompt: "Uczeń, przedmiot, ocena lub komentarz")
-        .navigationTitle("Zmiany ocen")
+        .navigationTitle("Centrum zmian")
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Gotowe") { dismiss() } } }
         .onAppear { load() }
         .onChange(of: service.running) { running in if !running { load() } }
