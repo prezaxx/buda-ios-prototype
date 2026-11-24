@@ -1,3 +1,18 @@
+Buda iOS 0.15.0 (build 18)
+Source: c3813b6
+Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/45361503142
+Local Kotlin/JVM tests PASS, including cookie wire-value round-trip regression.
+CI Swift history/export/router tests PASS. CI JVM tests PASS.
+Xcode device Release compilation PASS. Downloaded IPA CRC/version/build/executable PASS.
+SHA256: 83f6b9ef8a2a00651c352ef5d7fa17442d1906b9453da167e202691f1dd768b9
+Private companion source: 12a09b2a52a4b62e1e66d2365327e08b4386909f
+Private companion: 21 Node tests PASS, production deployment succeeded.
+Real message session renewal and physical device theme behavior remain unverified.
+Public pilot source lives separately at C:/rea/work/buda-push-public (b1604cf).
+Public live WebAuthn round-trip verified with synthetic temporary account (deleted).
+Public real diary/push delivery in free-tier limits pending user session import.
+
+Previous verification:
 Buda iOS 0.14.0 (build 17)
 Application source commit: 56d2211
 Run: https://github.com/prezaxx/buda-ios-prototype/actions/runs/45146100424

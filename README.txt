@@ -1,3 +1,45 @@
+BUDA iOS 0.15.0 (build 18) - sesja wiadomosci i wyglad
+
+Instalacja: Buda-iOS-0.15.0-unsigned.ipa przez AltStore jako aktualizacja.
+
+SSO LOGIN REQUIRED
+Naprawiono utrate sposobu kodowania ciasteczek przy zapisie sesji.
+Po odczycie wiadomosci odswiezone ciasteczka sa zapisywane w peku kluczy.
+Najpierw wykorzystywana jest sesja domeny wiadomosci, przed pelnym SSO.
+Jesli dostep wygasl:
+1. Wejdz w Wiadomosci.
+2. Wybierz Odnow dostep do wiadomosci.
+3. Podaj e-mail i haslo TEGO SAMEGO konta eduVULCAN.
+4. Po poprawnym odczycie zapisz nowa zaszyfrowana sesje i wczytaj ja
+   w dodatku powiadomien. Sam eksport starej sesji nie odnowi logowania.
+Haslo nie jest zapisywane. Nie usuwamy ocen podczas odnowienia.
+Kod naprawiony i testowany; rzeczywiste odnowienie konta wymaga potwierdzenia.
+
+WYGLAD
+O aplikacji / Wyglad / Motyw: Jak iPhone, Jasny albo Ciemny.
+Nowa paleta indygo, lagodniejsze karty i odswiezony naglowek dnia.
+Kolory ocen od nauczycieli pozostaja zachowane.
+Weryfikacja wizualna na fizycznym iPhonie pozostaje do wykonania.
+
+PUBLICZNY PILOTAZ BEZ CHATGPT
+https://buda-push-pilot.prezaxx-buda.workers.dev
+Limit 5 kont, klucze dostepu Face ID/Touch ID/kod urzadzenia.
+Pobierz klucz z TEJ strony i nim wykonaj eksport sesji w Budzie.
+Istniejacy przycisk strony w aplikacji prowadzi do prywatnego dodatku;
+nowy pilotaz otwieraj powyzszym adresem w Safari.
+Dodaj go do ekranu poczatkowego i wlacz powiadomienia.
+Przed wylaczeniem starego dodatku sprawdz nowy test push.
+Dwa dodatki dzialajace jednoczesnie moga wysylac podwojne alerty.
+Dla 2 uczniow cykl pilotażu moze zajac ok. 50 minut; nie jest natychmiastowy.
+Prywatny dodatek nadal dziala co godzine.
+Sesja na nowym serwerze nie zostala automatycznie skopiowana.
+
+Kompilacja i testy:
+https://github.com/prezaxx/buda-ios-prototype/actions/runs/45361503142
+Kod aplikacji: c3813b6
+Szczegoly w VALIDATION.txt.
+
+Archiwum poprzednich wydan:
 BUDA iOS 0.14.0 (build 17) - powiadomienia o zmianach w dzienniku
 
 Zakres: oceny, wiadomosci, frekwencja, sprawdziany, zadania, uwagi,
