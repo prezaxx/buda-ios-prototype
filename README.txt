@@ -1,3 +1,16 @@
+BUDA iOS 0.16.0 (build 20)
+IPA: Buda-iOS-0.16.0-unsigned.ipa (AltStore, aktualizacja).
+Centrum zmian > Powiadomienia z banerow: polacz historie istniejacym
+kluczem dostepu Cloudflare. Nie tworz drugiego konta.
+Historia w aplikacji pokazuje zdarzenia wykryte na serwerze, ucznia,
+kategorie, tresc i stan przed zmiana. Dostep tylko do odczytu, 90 dni.
+Link z Web Push otwiera ekran z przyciskiem Otworz w Budzie.
+iOS moze wymagac dodatkowego dotkniecia i potwierdzenia.
+To nadal Web Push, nie natywny APNs. Nie usuwaj dodatku z ekranu.
+Zainstalowanie aktualizacji nie wymaga ponownego eksportu sesji.
+Po wylogowaniu z Budy polaczenie historii jest usuwane z telefonu.
+
+Poprzednia wersja:
 BUDA iOS 0.15.1 (build 19)
 IPA: Buda-iOS-0.15.1-unsigned.ipa (AltStore, aktualizacja).
 Reczne Sprawdz dziennik teraz dziala takze przy wylaczonych lokalnych

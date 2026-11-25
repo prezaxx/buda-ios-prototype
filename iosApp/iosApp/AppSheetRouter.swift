@@ -3,6 +3,7 @@ import Combine
 
 enum AppSheetDestination: Equatable {
     case history(batch: String?)
+    case cloudHistory(batch: String?)
     case settings
     case about
     case reminder(title: String, date: String)

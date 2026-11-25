@@ -123,6 +123,7 @@ private final class PollCallback: NSObject, GradePollCallback {
         status = sessionProtected && baselineProtected ? "Sprawdzanie dziennika wyłączone." : "Sprawdzanie wyłączone; nie udało się przywrócić dostępu do sesji tylko po odblokowaniu. Odblokuj telefon i wyłącz ponownie."
     }
     func clear() {
+        CloudNotifications.shared.disconnect()
         disable()
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
         if !baseline.clear() { status = "Wyłączono sprawdzanie. Nie udało się usunąć historii porównań z pęku kluczy." }

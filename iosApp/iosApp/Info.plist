@@ -8,6 +8,7 @@
 	<string>Buda iOS</string>
 	<key>CFBundleName</key>
 	<string>Buda iOS</string>
+    <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>pl.buda.notifications</string><key>CFBundleURLSchemes</key><array><string>budadiary</string></array></dict></array>
     <key>UIBackgroundModes</key><array><string>fetch</string></array>
     <key>BGTaskSchedulerPermittedIdentifiers</key><array><string>pl.buda.ios.prototype.grades</string></array>
 </dict>

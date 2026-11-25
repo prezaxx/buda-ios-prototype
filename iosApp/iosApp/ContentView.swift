@@ -28,6 +28,8 @@ struct ComposeView: UIViewControllerRepresentable {
                     NavigationStack {
                         GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = batch }
                     }
+                case .cloudHistory(let batch):
+                    NavigationStack { CloudNotificationView(batch: batch) }
                 case .settings:
                     NotificationSettingsView()
                 case .about:

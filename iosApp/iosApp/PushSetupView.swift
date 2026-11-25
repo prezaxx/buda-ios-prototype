@@ -19,6 +19,9 @@ struct EncryptedSessionDocument: FileDocument {
     var body: some View {
         ScrollViewReader { proxy in
         List {
+            Section("Historia w aplikacji") {
+                NavigationLink("Połącz i pokaż powiadomienia z banerów") { CloudNotificationView(batch: nil) }
+            }
             Section {
                 Label("Buda Powiadomienia", systemImage: "bell.badge.fill").font(.title2.bold()).foregroundStyle(.teal)
                 Text("Dodatek na ekranie głównym iPhone’a odbiera Web Push niezależnie od otwarcia Budy. Wymaga połączenia sesji i zgody na powiadomienia. Nowy pilotaż nie wymaga konta ChatGPT. Ma limit pięciu kont. Odczyty odbywają się partiami, a pełny cykl dla dwóch uczniów może potrwać około 50 minut; alerty nie są natychmiastowe.")

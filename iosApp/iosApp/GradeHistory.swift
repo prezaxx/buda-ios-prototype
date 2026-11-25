@@ -53,6 +53,12 @@ import SwiftUI
     var body: some View {
         List {
             Section {
+                NavigationLink { CloudNotificationView(batch: nil) } label: {
+                    Label("Powiadomienia z banerów", systemImage: "bell.badge.fill")
+                }
+                Text("Otwórz historię serwera, aby zobaczyć zmiany otrzymane, gdy aplikacja była zamknięta.").font(.footnote)
+            }
+            Section {
                 HStack(spacing: 12) {
                     Image(systemName: "bell.badge.fill").font(.largeTitle).foregroundStyle(.teal)
                     VStack(alignment: .leading) {
