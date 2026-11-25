@@ -1,3 +1,31 @@
+BUDA iOS 0.15.1 (build 19)
+IPA: Buda-iOS-0.15.1-unsigned.ipa (AltStore, aktualizacja).
+Reczne Sprawdz dziennik teraz dziala takze przy wylaczonych lokalnych
+powiadomieniach. Postep i bledy sa widoczne w Centrum zmian.
+Limit oczekiwania 35 sekund przy braku odpowiedzi.
+Glowny przycisk Web Push prowadzi do nowego dodatku bez ChatGPT:
+https://buda-push-pilot.prezaxx-buda.workers.dev
+Stary dodatek jest osobno oznaczony jako wymagajacy ChatGPT.
+
+MESSAGES_LOGIN_REQUIRED:
+Otworz Wiadomosci w Budzie, wybierz Odnow dostep do wiadomosci,
+zaloguj sie tym samym kontem eduVULCAN i sprawdz odbior listy.
+Nastepnie pobierz klucz z nowego dodatku Cloudflare, zaszyfruj nim
+aktualna sesje w Budzie i wczytaj plik na stronie Cloudflare.
+Samo ponowne wczytanie starego pliku nie odnowi wygaslego logowania.
+Haslo nie jest przechowywane na serwerze. Gdy dostawca wymaga nowego
+logowania, konieczne jest odnowienie przez uzytkownika.
+Daty starych wpisow historii nie zmieniaja sie od samego sprawdzenia.
+
+CI PASS:
+https://github.com/prezaxx/buda-ios-prototype/actions/runs/45411653354
+Source: be8eb9b
+Swift tests / Kotlin JVM / Xcode Release PASS.
+IPA CRC, version 0.15.1, build 19 PASS.
+SHA256: 414b98c4cd3dee2b27e590882d2bebb8f5c5f0f2ae005abbf81e5ba140034b50
+Fizyczny test przycisku i odbior push na iPhonie pozostaja do potwierdzenia.
+
+Poprzednie wydania:
 BUDA iOS 0.15.0 (build 18) - sesja wiadomosci i wyglad
 
 Instalacja: Buda-iOS-0.15.0-unsigned.ipa przez AltStore jako aktualizacja.
