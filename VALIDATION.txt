@@ -1,3 +1,15 @@
+2026-11-25 — Buda iOS 0.16.0 build 20
+GitHub Actions: https://github.com/prezaxx/buda-ios-prototype/actions/runs/45627971392
+Source: 467c432. Swift model/export/router tests, JVM tests and Xcode Release build passed.
+IPA archive CRC passed; Info.plist confirms 0.16.0 build 20 and budadiary URL scheme.
+SHA256: 1fc70224af296f594a4c36a9fc12353916a4cee2e72710970bfcf995888e79fb
+Cloudflare: 35 tests passed; deploy 60ebae64-7029-4f31-b384-4671a54c67fd.
+Live history endpoint rejects anonymous access (401). Landing page returns 200
+with no-referrer and a link to the app.
+Real iPhone ASWebAuthenticationSession/Face ID pairing and push handoff remain
+to be validated on device. Web Push opens a landing page; tap Open in Buda.
+This is not native APNs and does not remove the PWA dependency.
+
 BUDA iOS 0.15.1 (build 19)
 IPA: Buda-iOS-0.15.1-unsigned.ipa (AltStore, aktualizacja).
 Reczne Sprawdz dziennik teraz dziala takze przy wylaczonych lokalnych
