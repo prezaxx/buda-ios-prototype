@@ -9,9 +9,10 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
 enum class Section(val label:String,val dated:Boolean=false) {
- HOME("Start"), MESSAGES("Wiadomości"), GRADES("Oceny"), SCHEDULE("Plan lekcji",true), PRESENCE("Frekwencja",true),
- EXAMS("Sprawdziany",true), HOMEWORK("Zadania",true), NOTES("Uwagi"),
- ANNOUNCEMENTS("Ogłoszenia"), SUMMARY("Średnie i końcowe")
+ HOME("Start"), NOTIFICATIONS("Powiadomienia"), MESSAGES("Wiadomości"), GRADES("Oceny"), SCHEDULE("Plan lekcji",true), PRESENCE("Frekwencja",true),
+ EXAMS("Sprawdziany",true), HOMEWORK("Zadania domowe",true), NOTES("Pochwały i uwagi"),
+ ANNOUNCEMENTS("Ogłoszenia"), SUMMARY("Średnie i końcowe"), MEETINGS("Zebrania",true), INFO("Informacje"),
+ EXTRA("Dodatkowe zajęcia",true), PLANNED("Lekcje planowane",true), MEALS("Jadłospis",true), TEACHERS("Nauczyciele"), SURVEYS("Ankiety")
 }
 @Serializable data class DiaryLink(val title:String,val url:String)
 @Serializable data class LessonInfo(val start:String,val end:String,val room:String,val cancelled:Boolean)
@@ -38,7 +39,7 @@ internal fun mapDiaryRow(section:Section,row:JsonObject,source:String):DiaryRow 
  val content=plain(row.text("Content"))
  val author=employee(row.obj("Creator") ?: row.obj("Sender"))
  return when(section) {
- Section.SCHEDULE -> {
+ Section.SCHEDULE, Section.EXTRA -> {
   val sub=row.obj("Substitution")
   fun effective(name:String)=sub?.obj(name) ?: row.obj(name)
   val slot=effective("TimeSlot")
@@ -61,12 +62,23 @@ internal fun mapDiaryRow(section:Section,row:JsonObject,source:String):DiaryRow 
  Section.ANNOUNCEMENTS -> DiaryRow(key,row.text("Title").ifBlank { "Ogłoszenie" },details(content,author),row.text("From"),links=attachments(row))
  Section.SUMMARY -> if(source.contains("average")) DiaryRow(key,subject,details("Średnia: "+row.text("Average").ifBlank { "nie podano" },row.text("Points").let { if(it.isBlank()) "" else "Punkty: $it" }),badge="Średnia szkoły")
  else DiaryRow(key,subject,details("Przewidywana: "+row.text("Entry_1").ifBlank { "nie podano" },"Końcowa: "+row.text("Entry_2").ifBlank { "nie podano" },row.text("Entry_3").let { if(it.isBlank()) "" else "Dodatkowy wpis szkoły: $it" }),badge="Klasyfikacja")
- Section.HOME, Section.GRADES, Section.MESSAGES -> throw DiaryFormatException()
+ Section.MEETINGS -> DiaryRow(key,row.text("Why").ifBlank { "Zebranie" },details(plain(row.text("Agenda")),row.text("Where"),plain(row.text("AdditionalInfo")),row.text("Online")),row.text("DateAt"))
+ Section.INFO -> DiaryRow(key,row.text("Topic").ifBlank { "Informacja szkoły" },content,row.text("DateAt"))
+ Section.PLANNED -> DiaryRow(key,subject.ifBlank { "Lekcja planowana" },details(plain(row.text("Topic")),employee(row.obj("TeacherPrimary")),plain(row.text("Note")),row.obj("TimeSlot")?.text("Start").orEmpty()),row.text("DayAt"),if(row.flag("Replacement")) "Zastępstwo" else "")
+ Section.MEALS -> DiaryRow(key,row.text("MealName").ifBlank { "Posiłek" },details(plain(row.text("Dishes")),(row["Entires"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.text("Name") }.joinToString("\n")),row.text("DateAt").ifBlank { row.text("DayAt") },row.text("DietName"))
+ Section.TEACHERS -> DiaryRow(key,employee(row).ifBlank { "Nauczyciel" },plain(row.text("Description")))
+ Section.HOME, Section.NOTIFICATIONS, Section.SURVEYS, Section.GRADES, Section.MESSAGES -> throw DiaryFormatException()
  }
 }
 internal suspend fun fetchDiary(api:SzpontHebeCeApi,account:Account,section:Section,period:Int?,from:String,to:String):DiaryResult {
  val endpoints=when(section) {
  Section.SCHEDULE -> listOf("mobile/schedule/withchanges/byPupil","mobile/schedule/extra/withchanges/byPupil")
+ Section.EXTRA -> listOf("mobile/schedule/extra/withchanges/byPupil")
+ Section.MEETINGS -> listOf("mobile/meetings/byPupil")
+ Section.INFO -> listOf("mobile/school/info")
+ Section.PLANNED -> listOf("mobile/lesson/planned/byPupil")
+ Section.MEALS -> listOf("mobile/eatery")
+ Section.TEACHERS -> listOf("mobile/teacher/byPeriod")
  Section.PRESENCE -> listOf("mobile/presence/extra/byPupil")
  Section.EXAMS -> listOf("mobile/exam/byPupil")
  Section.HOMEWORK -> listOf("mobile/homework/byPupil")
@@ -75,13 +87,17 @@ internal suspend fun fetchDiary(api:SzpontHebeCeApi,account:Account,section:Sect
  Section.SUMMARY -> listOf("mobile/grade/average/byPupil","mobile/grade/summary/byPupil")
  else -> error("UseGradesReader")
  }
- if(section==Section.SUMMARY && period==null) return DiaryResult(emptyList(),"Brak okresu oceniania dla tego konta.")
+ if(section in listOf(Section.SUMMARY,Section.TEACHERS) && period==null) return DiaryResult(emptyList(),"Brak okresu oceniania dla tego konta.")
  val output=mutableListOf<DiaryRow>();val errors=mutableListOf<String>()
  for(endpoint in endpoints) {
   try {
    val rows=collectPages(500,{ row:JsonObject -> row.text("Id").toIntOrNull() ?: throw DiaryFormatException() }) { last ->
     val query=mutableMapOf<String,Any?>("pupilId" to account.pupil.id,"lastId" to last,"pageSize" to 500)
     if(section.dated) { query["dateFrom"]=from;query["dateTo"]=to }
+    if(section==Section.MEETINGS) { query.remove("dateFrom");query.remove("dateTo");query["from"]=from }
+    if(section==Section.MEALS) query["full"]=true
+    if(section==Section.TEACHERS) query["periodId"]=period
+    if(section in listOf(Section.MEETINGS,Section.INFO,Section.PLANNED,Section.EXTRA,Section.MEALS,Section.TEACHERS)) query["lastSyncDate"]="1970-01-01 01:00:00"
     if(section in listOf(Section.SCHEDULE,Section.PRESENCE,Section.EXAMS,Section.HOMEWORK,Section.NOTES)) query["lastSyncDate"]="1970-01-01 01:00:00"
     if(section==Section.ANNOUNCEMENTS) { query["unitId"]=account.unit.id;query["view"]=6 }
     if(section==Section.SUMMARY) { query["unitId"]=account.unit.id;query["periodId"]=period;if(endpoint.contains("average")) query["scope"]="auto" }
@@ -98,6 +114,7 @@ internal suspend fun fetchDiary(api:SzpontHebeCeApi,account:Account,section:Sect
   } catch(e:CancellationException) { throw e }
     catch(e:Exception) { currentCoroutineContext().ensureActive(); errors += safeError(e,if(endpoint.contains("extra")) "zajęcia dodatkowe" else if(endpoint.contains("average")) "średnie" else section.label) }
  }
- val sorted=if(section in listOf(Section.NOTES,Section.ANNOUNCEMENTS,Section.PRESENCE)) output.sortedByDescending { it.date } else output.sortedWith(compareBy({it.date},{it.detail},{it.title}))
+ val filtered=if(section==Section.MEETINGS) output.filter { it.date.take(10)<=to } else output
+ val sorted=if(section in listOf(Section.NOTES,Section.ANNOUNCEMENTS,Section.PRESENCE)) filtered.sortedByDescending { it.date } else filtered.sortedWith(compareBy({it.date},{it.detail},{it.title}))
  return DiaryResult(sorted,errors.takeIf { it.isNotEmpty() }?.joinToString("\n"))
 }

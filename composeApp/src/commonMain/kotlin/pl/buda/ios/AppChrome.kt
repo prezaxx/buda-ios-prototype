@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
   Box {
    TextButton(onClick={menu=true}) { Text("Menu") }
    DropdownMenu(menu,{menu=false}) {
-    DropdownMenuItem(text={Text("Centrum zmian ocen")},onClick={menu=false;notifications.showHistory()})
+    DropdownMenuItem(text={Text("Powiadomienia")},onClick={menu=false;notifications.showHistory()})
     DropdownMenuItem(text={Text("Powiadomienia i przypomnienia")},onClick={menu=false;notifications.showSettings()})
     DropdownMenuItem(text={Text("O aplikacji i nowości")},onClick={menu=false;notifications.showAbout()})
     if(onLogout!=null) { HorizontalDivider();DropdownMenuItem(text={Text("Wyloguj")},onClick={menu=false;onLogout()}) }
@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 }
 @Composable internal fun DashboardShortcuts(onHistory:()->Unit,onReminder:()->Unit) {
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
-  ShortcutCard("Zmiany ocen","Twoja oś czasu",Modifier.weight(1f),onHistory)
+  ShortcutCard("Powiadomienia","Zmiany w dzienniku",Modifier.weight(1f),onHistory)
   ShortcutCard("Przypomnienie","Zaplanuj spokojnie",Modifier.weight(1f),onReminder)
  }
 }

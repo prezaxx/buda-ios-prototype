@@ -1,0 +1,33 @@
+POROWNANIE SCREENOW EDUVULCAN — BUDA 0.17.0
+Zrodlo: C:/rea/edu, 8 screenow 7980–7987, odczyt wizualny 2026-11-26.
+Nie kopiowano reklam ani logotypu eduVULCAN.
+
+Start / oceny: dodane podsumowania przedmiotow z oryginalnymi kolorami nauczyciela.
+Start / plan: teraz i nastepna lekcja oraz pierwsze lekcje dnia.
+Start / frekwencja: wpisy dzisiejsze; nie wyliczamy procentu z samych nieobecnosci.
+Start / pochwaly i uwagi: ostatnie wpisy, opis, data, kategoria.
+Start / sprawdziany i zadania: najblizsze 7 dni, przypomnienia.
+Kolejnosc pulpitu i menu: edycja, zapis lokalny.
+Kalendarz: siatka tygodnia i lista dni, godziny, zastepstwa, odwolania, szczegoly.
+Powiadomienia: osobna dolna zakladka, licznik, filtry, przeczytane, szczegoly.
+Wiadomosci: istniejaca obsluga zachowana.
+Plan, oceny, frekwencja, ogloszenia, zadania, sprawdziany, uwagi: istniejace
+moduly zachowane, czesc rozbudowana.
+Informacje: mobile/school/info.
+Dodatkowe zajecia: mobile/schedule/extra/withchanges/byPupil.
+Zebrania: mobile/meetings/byPupil.
+Lekcje planowane: mobile/lesson/planned/byPupil.
+Jadlospis: mobile/eatery. Data pokazana tylko jesli API ja podaje.
+Nauczyciele: mobile/teacher/byPeriod z okresem wybranego ucznia.
+Ankiety: adres QuestionnaireRoot przypisany do konta; strona szkoly, nie natywny formularz.
+Informacje reklamowe VULCAN: pominiete.
+Badge kazdego modulu z menu eduVULCAN: nie odwzorowano; licznik nieprzeczytanych
+jest dla historii powiadomien. Nie tworzymy fikcyjnych liczb.
+Dodane moduly odczytu nie rozszerzaja automatycznie kategorii monitorowanych
+przez serwer push; dotychczasowe kategorie monitorowania pozostaja.
+
+Ograniczenie push:
+Automatyczna proba otwarcia Budy z posredniej strony Web Push, bez wyboru miejsca.
+System iOS moze blokowac automatyczne przejscie lub pokazac wlasne potwierdzenie.
+Nie deklarujemy usuniecia posrednictwa PWA ani natywnego APNs.
+Dzialanie na iPhonie i realne dane szkoly wymagaja weryfikacji uzytkownika.

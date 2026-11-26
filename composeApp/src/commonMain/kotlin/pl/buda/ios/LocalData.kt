@@ -6,7 +6,7 @@ import kotlin.time.Clock
 @Serializable data class SavedScreen(val at:String,val grades:List<GradeRow> = emptyList(),val rows:List<DiaryRow> = emptyList(),val dashboard:DashboardData?=null)
 @Serializable data class MailRecipient(val key:String,val name:String)
 @Serializable data class MailDraft(val id:String,val thread:String,val title:String="",val text:String="",val recipients:List<MailRecipient> = emptyList(),val uncertain:Boolean=false,val replyTo:String?=null)
-@Serializable private data class LocalData(val version:Int=1,val screens:Map<String,SavedScreen> = emptyMap(),val drafts:Map<String,MailDraft> = emptyMap())
+@Serializable private data class LocalData(val version:Int=1,val screens:Map<String,SavedScreen> = emptyMap(),val drafts:Map<String,MailDraft> = emptyMap(),val dashboardOrder:List<String> = emptyList(),val menuOrder:List<String> = emptyList())
 internal fun scopeKey(parts:List<String>)=sessionJson.encodeToString(parts)
 internal fun studentKey(student:Student)=scopeKey(listOf(student.credential.deviceId,student.account.unit.restUrl,student.account.unit.id.toString(),student.account.pupil.id.toString(),student.account.caretakerId.toString(),student.account.profileId.toString()))
 internal fun screenKey(student:Student,state:ScreenState)=scopeKey(listOf(studentKey(student),state.section.name,state.periodId.toString(),if(state.section.dated) state.from else "",if(state.section.dated) state.to else ""))
@@ -15,6 +15,10 @@ class LocalDataStore(private val vault:SessionVault) {
  var available=true;private set
  var persistent=true
  init { try { vault.read()?.let { data=sessionJson.decodeFromString<LocalData>(it);require(data.version==1) } } catch(e:Exception) { available=false;data=LocalData() } }
+ fun menuOrder():List<Section> = normalizeMenuOrder(data.menuOrder)
+ fun saveMenuOrder(order:List<Section>)=commit(data.copy(menuOrder=normalizeMenuOrder(order.map { it.name }).map { it.name }))
+ fun dashboardOrder():List<Section> = normalizeDashboardOrder(data.dashboardOrder)
+ fun saveDashboardOrder(order:List<Section>)=commit(data.copy(dashboardOrder=normalizeDashboardOrder(order.map { it.name }).map { it.name }))
  fun screen(key:String):SavedScreen?=data.screens[key]
  fun draft(key:String):MailDraft?=data.drafts[key]
  private fun commit(value:LocalData):Boolean {
@@ -38,3 +42,11 @@ class LocalDataStore(private val vault:SessionVault) {
  fun clear():Boolean { if(!vault.clear()) return false;data=LocalData();available=true;return true }
 }
 internal fun savedScreen(state:ScreenState)=SavedScreen(Clock.System.now().toString(),state.grades,state.rows,state.dashboard)
+
+internal val defaultDashboardOrder=listOf(Section.SCHEDULE,Section.GRADES,Section.PRESENCE,Section.NOTES,Section.EXAMS,Section.HOMEWORK)
+internal fun normalizeDashboardOrder(names:List<String>):List<Section> =
+ (names.mapNotNull { name -> defaultDashboardOrder.firstOrNull { it.name==name } }+defaultDashboardOrder).distinct()
+
+internal val defaultMenuOrder=Section.entries.filter { it !in listOf(Section.HOME,Section.SCHEDULE,Section.NOTIFICATIONS,Section.MESSAGES) }
+internal fun normalizeMenuOrder(names:List<String>):List<Section> =
+ (names.mapNotNull { name -> defaultMenuOrder.firstOrNull { it.name==name } }+defaultMenuOrder).distinct()

@@ -13,18 +13,29 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
-@Composable fun BudaApp(vault:SessionVault,notifications:NotificationControls=NoNotificationControls,dataVault:SessionVault?=null) {
+@Composable fun BudaApp(vault:SessionVault,notifications:NotificationControls=NoNotificationControls,dataVault:SessionVault?=null,notificationPane:@Composable ()->Unit = { Text("Powiadomienia są dostępne w aplikacji iOS.") }) {
  val localVault=remember(dataVault) { dataVault ?: MemoryVault() }
  val scope=rememberCoroutineScope();val model=remember(vault,notifications,localVault) { Prototype(scope,vault,notifications,localVault) }
  DisposableEffect(model) { onDispose { model.close() } }
  val state by model.state.collectAsState()
+ val notificationRequest by NativeNavigation.notificationRequests.collectAsState()
+ var handledNotification by remember { mutableStateOf(0) }
+ LaunchedEffect(notificationRequest,state.selected) {
+  if(notificationRequest>handledNotification && state.selected!=null) {
+   handledNotification=notificationRequest;model.section(Section.NOTIFICATIONS)
+  }
+ }
  var email by remember { mutableStateOf("") };var password by remember { mutableStateOf("") }
+ var menuOrder by remember { mutableStateOf(model.localData.menuOrder()) }
+ var dashboardOrder by remember { mutableStateOf(model.localData.dashboardOrder()) }
+ var layoutError by remember { mutableStateOf(false) }
  var logout by remember { mutableStateOf(false) }
  BudaTheme {
   if(logout) AlertDialog(onDismissRequest={logout=false},title={Text("Wylogować?")},text={Text("Usuniemy zapisaną sesję z tego iPhone’a.")},confirmButton={TextButton(onClick={logout=false;model.logout()}){Text("Wyloguj")}},dismissButton={TextButton(onClick={logout=false}){Text("Anuluj")}})
   Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
    Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
     BudaHeader(notifications.appVersion(),notifications,if(state.students.isEmpty()) null else ({logout=true}))
+    if(layoutError) Text("Nie udało się zapisać układu pulpitu.",color=MaterialTheme.colorScheme.error)
     if(state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     state.notice?.let { Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.tertiary) }
     if(state.students.isEmpty()) {
@@ -46,7 +57,7 @@ import androidx.compose.ui.unit.dp
     } else {
      val student=state.students[state.selected!!]
      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-      Column(Modifier.weight(1f)) { Text(student.title,style=MaterialTheme.typography.titleMedium);Text(student.account.classDisplay.orEmpty(),style=MaterialTheme.typography.bodySmall) }
+      Column(Modifier.weight(1f)) { Text(student.title,style=MaterialTheme.typography.titleMedium);Text(student.account.classDisplay.orEmpty()+(student.account.journal?.pupilNumber?.let { " · nr "+it } ?: ""),style=MaterialTheme.typography.bodySmall) }
       var pupils by remember { mutableStateOf(false) }
       Box {
        FilledTonalButton(onClick={pupils=true}) { Text("Zmień ucznia") }
@@ -63,7 +74,7 @@ import androidx.compose.ui.unit.dp
       Text(state.section.label,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f))
       TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Odśwież") }
      }
-     if(state.section in listOf(Section.GRADES,Section.SUMMARY)) {
+     if(state.section in listOf(Section.GRADES,Section.SUMMARY,Section.TEACHERS)) {
       var expanded by remember { mutableStateOf(false) }
       Box {
        val period=student.account.periods.orEmpty().firstOrNull { it.id==state.periodId }
@@ -74,9 +85,9 @@ import androidx.compose.ui.unit.dp
      if(state.section.dated) {
       var dates by remember { mutableStateOf(false) }
       Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-       if(state.section==Section.SCHEDULE) TextButton(onClick={model.shiftDays(-7)}) { Text("‹") }
+       if(state.section in listOf(Section.SCHEDULE,Section.EXTRA,Section.PLANNED,Section.MEALS)) TextButton(onClick={model.shiftDays(-7)}) { Text("‹") }
        TextButton(onClick={dates=true}) { Text("${state.from} – ${state.to}",style=MaterialTheme.typography.labelMedium) }
-       if(state.section==Section.SCHEDULE) TextButton(onClick={model.shiftDays(7)}) { Text("›") }
+       if(state.section in listOf(Section.SCHEDULE,Section.EXTRA,Section.PLANNED,Section.MEALS)) TextButton(onClick={model.shiftDays(7)}) { Text("›") }
       }
       if(dates) {
        var from by remember { mutableStateOf(state.from) };var to by remember { mutableStateOf(state.to) }
@@ -88,11 +99,24 @@ import androidx.compose.ui.unit.dp
      }
      state.cachedAt?.let { Text("Zapisana kopia: "+it.take(19).replace("T"," ")+" UTC"+(if(state.busy) " · odświeżam…" else ""),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.tertiary) }
      if(state.section==Section.HOME) {
-      DashboardPane(state,Modifier.weight(1f),onSection={model.section(it)},onReminder={notifications.planReminder(it.title,it.date.take(10))},onHistory={notifications.showHistory()},onPlanReminder={notifications.planReminder("","")})
+      DashboardPane(state,Modifier.weight(1f),onSection={model.section(it)},onReminder={notifications.planReminder(it.title,it.date.take(10))},onHistory={notifications.showHistory()},onPlanReminder={notifications.planReminder("","")},order=dashboardOrder,onOrder={order -> if(model.localData.saveDashboardOrder(order)) { dashboardOrder=order;layoutError=false } else layoutError=true})
      } else if(state.section==Section.SCHEDULE) {
-      key(state.selected) { SchedulePane(state,Modifier.weight(1f),onCurrentWeek={model.section(Section.SCHEDULE)}) }
+      key(state.selected) { SchedulePane(state,Modifier.weight(1f),onCurrentWeek={model.section(Section.SCHEDULE)},onReminder={notifications.planReminder(it.title,it.date.take(10))}) }
      } else if(state.section==Section.GRADES) {
       key(state.selected,state.periodId) { GradesPane(state,Modifier.weight(1f)) }
+     } else if(state.section==Section.NOTIFICATIONS) {
+      Box(Modifier.weight(1f).fillMaxWidth()) { notificationPane() }
+     } else if(state.section==Section.SURVEYS) {
+      val uri=LocalUriHandler.current
+      Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+       Text("Ankiety szkoły",style=MaterialTheme.typography.titleLarge)
+       Text("Ankiety są udostępniane przez moduł szkoły. Otworzy się strona wskazana dla wybranego ucznia; może wymagać logowania.")
+       val url=student.account.links.questionnaireRoot
+       var failed by remember { mutableStateOf(false) }
+       if(url.startsWith("https://",true)) Button(onClick={try { uri.openUri(url) } catch(e:Exception) { failed=true }}) { Text("Otwórz ankiety szkoły") }
+       else Text("Szkoła nie udostępniła adresu ankiet dla tego ucznia.")
+       if(failed) Text("Nie udało się otworzyć modułu szkoły.",color=MaterialTheme.colorScheme.error)
+      }
      } else if(state.section==Section.MESSAGES) {
       MessagesPane(model.messages,Modifier.weight(1f))
      } else {
@@ -106,12 +130,12 @@ import androidx.compose.ui.unit.dp
       if(linkError) item { Text("Nie udało się otworzyć załącznika.",color=MaterialTheme.colorScheme.error) }
       if(!state.busy && state.error==null && shownRows.isEmpty()) item { Text(if(query.isBlank()) "Brak wpisów w wybranym zakresie." else "Brak wyników wyszukiwania.") }
       items(shownRows,key={it.key}) { row ->
-       DiaryEntryCard(row,remind=if(state.section in listOf(Section.EXAMS,Section.HOMEWORK)) ({notifications.planReminder(row.title,row.date.take(10))}) else null) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } }
+       DiaryEntryCard(row,remind=if(state.section in listOf(Section.EXAMS,Section.HOMEWORK,Section.MEETINGS,Section.PLANNED)) ({notifications.planReminder(row.title,row.date.take(10))}) else null) { link -> try { uri.openUri(link.url) } catch(e:Exception) { linkError=true } }
       }
      }
      }
     }
-    if(state.selected!=null && state.students.isNotEmpty()) BudaNavigation(state.section) { model.section(it) }
+    if(state.selected!=null && state.students.isNotEmpty()) BudaNavigation(state.section,order=menuOrder,onOrder={order -> if(model.localData.saveMenuOrder(order)) { menuOrder=order;layoutError=false } else layoutError=true}) { model.section(it) }
    }
   }
  }

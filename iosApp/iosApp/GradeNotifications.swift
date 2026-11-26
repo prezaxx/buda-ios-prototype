@@ -241,7 +241,7 @@ final class NativeNotificationControls: NSObject, NotificationControls {
         DispatchQueue.main.async { AppSheetRouter.shared.present(.about) }
     }
     func showHistory() {
-        DispatchQueue.main.async { AppSheetRouter.shared.present(.history(batch: nil)) }
+        DispatchQueue.main.async { CloudNotificationRoute.shared.batch = nil; NativeNavigation.shared.openNotifications() }
     }
     func showSettings() {
         DispatchQueue.main.async { AppSheetRouter.shared.present(.settings) }

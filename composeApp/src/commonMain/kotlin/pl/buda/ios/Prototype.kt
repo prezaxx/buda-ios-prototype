@@ -107,8 +107,8 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
  fun section(section:Section) {
   job?.cancel();messages.cancel()
   val today=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-  val from=if(section==Section.SCHEDULE) today.minus(today.dayOfWeek.ordinal,DateTimeUnit.DAY) else today.minus(30,DateTimeUnit.DAY)
-  val to=if(section==Section.SCHEDULE) from.plus(6,DateTimeUnit.DAY) else if(section==Section.PRESENCE) today else today.plus(60,DateTimeUnit.DAY)
+  val from=if(section in listOf(Section.SCHEDULE,Section.EXTRA,Section.PLANNED,Section.MEALS)) today.minus(today.dayOfWeek.ordinal,DateTimeUnit.DAY) else today.minus(30,DateTimeUnit.DAY)
+  val to=if(section in listOf(Section.SCHEDULE,Section.EXTRA,Section.PLANNED,Section.MEALS)) from.plus(6,DateTimeUnit.DAY) else if(section==Section.PRESENCE) today else today.plus(60,DateTimeUnit.DAY)
   mutable.value=mutable.value.copy(section=section,cachedAt=null,from=from.toString(),to=to.toString(),grades=emptyList(),rows=emptyList(),error=null)
   refresh()
  }
@@ -127,6 +127,7 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
   val before=mutable.value;val student=before.selected?.let { before.students.getOrNull(it) } ?: return
   job?.cancel()
   if(before.section==Section.MESSAGES) { mutable.value=before.copy(busy=false);messages.refresh();return }
+  if(before.section in listOf(Section.NOTIFICATIONS,Section.SURVEYS)) { mutable.value=before.copy(busy=false);return }
   val key=screenKey(student,before)
   val cached=localData.screen(key)
   fun cachedState(error:String?=null)=before.copy(busy=false,dashboard=cached?.dashboard,grades=cached?.grades.orEmpty(),rows=cached?.rows.orEmpty(),cachedAt=cached?.at,error=error)
@@ -135,12 +136,15 @@ class Prototype(private val scope:CoroutineScope,private val vault:SessionVault,
    try {
     if(before.section==Section.HOME) {
      val today=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-     val data=loadDashboard(today) { section,from,to -> fetchDiary(student.api,student.account,section,before.periodId,from,to) }
+     val data=loadDashboard(today,fetchGrades={
+      val period=before.periodId
+      if(period==null) emptyList() else loadPages { last -> parseGrades(student.api.getGradePayload(student.account.unit.restUrl,student.account.unit.id,student.account.pupil.id,period,lastId=last,pageSize=500),student.account.pupil.id) }
+     }) { section,from,to -> fetchDiary(student.api,student.account,section,before.periodId,from,to) }
      ensureActive()
      if(cached!=null && data.schedule.warning!=null && data.exams.warning!=null && data.homework.warning!=null) mutable.value=cachedState("Nie udało się odświeżyć pulpitu. Pokazujemy zapisaną kopię.")
      else {
       mutable.value=mutable.value.copy(busy=false,dashboard=data,cachedAt=null)
-      if(data.schedule.warning==null && data.exams.warning==null && data.homework.warning==null) cacheCurrent(key)
+      if(data.schedule.warning==null && data.exams.warning==null && data.homework.warning==null && data.notes.warning==null && data.presence.warning==null && data.gradesWarning==null) cacheCurrent(key)
      }
     } else if(before.section==Section.GRADES) {
      val period=before.periodId

@@ -1,3 +1,30 @@
+BUDA iOS 0.17.0 (build 21)
+IPA: Buda-iOS-0.17.0-unsigned.ipa — aktualizacja przez AltStore.
+
+Nowe:
+- Dolny pasek: Start, Plan, Powiadomienia, Wiadomosci, Wiecej.
+- Powiadomienia: historia serwera w zakladce aplikacji, filtry ucznia i kategorii,
+  nieprzeczytane, licznik, grupowanie dni, szczegoly przed/po, kopia w Keychain.
+- Plan: tygodniowa siatka z godzinami, odwolane lekcje, zastepstwa, rownolegle
+  zajecia, szczegoly po dotknieciu oraz dotychczasowa lista dni.
+- Zebrania, informacje szkoly, nauczyciele, jadlospis, lekcje planowane,
+  osobne dodatkowe zajecia. Dane z endpointow juz obecnych w SDK.
+- Ankiety: otwarcie modulu wskazanego przez szkole (moze wymagac logowania).
+  Nie ma natywnego formularza ankiet ani nieudokumentowanego API odpowiedzi.
+- Pulpit: oceny z kolorami nauczyciela, dzisiejsza frekwencja, pochwaly i uwagi,
+  plan, sprawdziany i zadania. Zapisywana kolejnosc pulpitu i menu.
+- Web Push: automatyczna proba otwarcia budadiary://notifications.
+  Brak pytania, w ktorej aplikacji otwierac. iOS moze nadal wymagac potwierdzenia.
+  Przycisk awaryjny pojawia sie, jesli system nie otworzy Budy.
+  To nie APNs aplikacji; dodatek Web Push nadal musi byc zainstalowany.
+
+Po aktualizacji:
+Otworz Powiadomienia na dolnym pasku. Jesli historia byla polaczona w 0.16,
+pozostaje polaczona. Inaczej uzyj istniejacego klucza dostepu Face ID.
+Dostepnosc nowych modulow zalezy od szkoly i konta.
+Ostatnie 100 zmian z serwera; dane modulow wymagaja sprawdzenia na koncie szkoly.
+
+Poprzednia wersja:
 BUDA iOS 0.16.0 (build 20)
 IPA: Buda-iOS-0.16.0-unsigned.ipa (AltStore, aktualizacja).
 Centrum zmian > Powiadomienia z banerow: polacz historie istniejacym

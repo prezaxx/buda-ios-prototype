@@ -7,7 +7,7 @@ class DashboardTest {
  @Test fun startFetchesTodayAndSevenInclusiveDays()=runTest {
   val calls=mutableListOf<Triple<Section,String,String>>()
   val data=loadDashboard(LocalDate(2026,11,3)) { section,from,to -> calls+=Triple(section,from,to);DiaryResult(emptyList()) }
-  assertEquals(3,calls.size);assertTrue(Triple(Section.SCHEDULE,"2026-11-03","2026-11-03") in calls)
+  assertEquals(5,calls.size);assertTrue(Triple(Section.SCHEDULE,"2026-11-03","2026-11-03") in calls)
   assertTrue(Triple(Section.EXAMS,"2026-11-03","2026-11-09") in calls);assertTrue(Triple(Section.HOMEWORK,"2026-11-03","2026-11-09") in calls)
   assertNull(data.schedule.warning)
  }

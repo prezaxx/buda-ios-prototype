@@ -22,56 +22,89 @@ import kotlin.time.Clock
  LaunchedEffect(Unit) { while(true) { delay(30000);now=Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()) } }
  return now
 }
-@Composable internal fun DashboardPane(state:ScreenState,modifier:Modifier,onSection:(Section)->Unit,onReminder:(DiaryRow)->Unit={},onHistory:()->Unit={},onPlanReminder:()->Unit={}) {
+@Composable internal fun DashboardPane(state:ScreenState,modifier:Modifier,onSection:(Section)->Unit,onReminder:(DiaryRow)->Unit={},onHistory:()->Unit={},onPlanReminder:()->Unit={},order:List<Section> = defaultDashboardOrder,onOrder:(List<Section>)->Unit={}) {
  val now=liveClock();val data=state.dashboard
- LazyColumn(modifier,verticalArrangement=Arrangement.spacedBy(12.dp),contentPadding=PaddingValues(bottom=24.dp)) {
+ var arrange by remember { mutableStateOf(false) }
+ if(arrange) AlertDialog(onDismissRequest={arrange=false},title={Text("Kolejność pulpitu")},text={
+  Column {
+   order.forEachIndexed { index,section ->
+    Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+     Text(section.label,Modifier.weight(1f))
+     TextButton(enabled=index>0,onClick={val next=order.toMutableList();val previous=next[index-1];next[index-1]=section;next[index]=previous;onOrder(next)}) { Text("↑") }
+     TextButton(enabled=index<order.lastIndex,onClick={val next=order.toMutableList();val after=next[index+1];next[index+1]=section;next[index]=after;onOrder(next)}) { Text("↓") }
+    }
+   }
+  }
+ },confirmButton={TextButton(onClick={arrange=false}) { Text("Gotowe") }})
+ LazyColumn(modifier,verticalArrangement=Arrangement.spacedBy(14.dp),contentPadding=PaddingValues(bottom=24.dp)) {
   item { MyDayHero(now.date,state.selected?.let { state.students.getOrNull(it)?.title }.orEmpty()) }
   item { DashboardShortcuts(onHistory,onPlanReminder) }
-  if(data!=null && data.today==now.date && data.schedule.warning==null) {
-   lessonSpotlight(data.schedule.rows,now)?.let { spotlight ->
-    item { LessonSpotlightCard(spotlight) { onSection(Section.SCHEDULE) } }
-   }
-  }
-  if(data!=null) item {
-   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-    val end=data.today.plus(6,DateTimeUnit.DAY)
-    DashboardCount(if(data.today==now.date) "Lekcje dziś" else "Lekcje • "+data.today.toString(),if(data.schedule.warning==null) upcomingRows(data.schedule.rows,data.today,data.today).count { it.lesson?.cancelled!=true }.toString() else "—",Modifier.weight(1f)) { onSection(Section.SCHEDULE) }
-    DashboardCount("Sprawdziany · 7 dni",if(data.exams.warning==null) upcomingRows(data.exams.rows,data.today,end).size.toString() else "—",Modifier.weight(1f)) { onSection(Section.EXAMS) }
-    DashboardCount("Zadania · 7 dni",if(data.homework.warning==null) upcomingRows(data.homework.rows,data.today,end).size.toString() else "—",Modifier.weight(1f)) { onSection(Section.HOMEWORK) }
-   }
-  }
   state.error?.let { item { Text(it,color=MaterialTheme.colorScheme.error) } }
   if(data!=null) {
-   if(data.today!=now.date) item { Text("Dane z ${data.today}. Odśwież widok, aby pobrać dzisiejszy plan.",color=MaterialTheme.colorScheme.tertiary) }
-   item { Text(if(data.today==now.date) "Dzisiaj w planie" else "Plan na ${data.today}",style=MaterialTheme.typography.titleLarge) }
-   data.schedule.warning?.let { item { Text(it,color=MaterialTheme.colorScheme.error) } }
-   val lessons=upcomingRows(data.schedule.rows,data.today,data.today).sortedBy { it.lesson?.start.orEmpty() }
-   items(lessons,key={"home:"+it.key}) { LessonCard(it,now) }
-   if(lessons.isEmpty() && data.schedule.warning==null) item { EmptyCard("Brak zajęć w planie na dziś.") }
-   for((section,result) in listOf(Section.EXAMS to data.exams,Section.HOMEWORK to data.homework)) {
-    item(key="heading:$section") {
-     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
-      Text(section.label,style=MaterialTheme.typography.titleLarge,modifier=Modifier.weight(1f))
-      TextButton(onClick={onSection(section)}) { Text("Wszystkie ›") }
-     }
-     Text("Najbliższe 7 dni",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.secondary)
-    }
-    result.warning?.let { item(key="warning:$section") { Text(it,color=MaterialTheme.colorScheme.error) } }
-    val rows=upcomingRows(result.rows,data.today,data.today.plus(6,DateTimeUnit.DAY))
-    items(rows.take(8),key={"$section:${it.key}"}) { row ->
-     Card(onClick={onSection(section)},modifier=Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
-      Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-       Text(row.date.take(10),style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
-       Text(row.title,style=MaterialTheme.typography.titleMedium)
-       Text(row.detail,maxLines=3,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-       TextButton(onClick={onReminder(row)}) { Text("Przypomnij mi") }
+   if(data.today!=now.date) item { Text("Zapisany pulpit z "+data.today+". Odśwież dane.",color=MaterialTheme.colorScheme.tertiary) }
+   order.forEach { section ->
+    item(key=section.name) {
+     Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
+      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+       Text(section.label,Modifier.weight(1f),style=MaterialTheme.typography.titleLarge)
+       TextButton(onClick={onSection(section)}) { Text("Wszystkie") }
+      }
+      when(section) {
+       Section.GRADES -> {
+        data.gradesWarning?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+        val groups=gradeGroups(data.grades)
+        Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+         groups.forEach { (subject,grades) ->
+          Card(onClick={onSection(Section.GRADES)},modifier=Modifier.width(190.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
+           Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+            Text(subject,style=MaterialTheme.typography.titleSmall,maxLines=2)
+            Row(horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+             grades.sortedByDescending { it.createdAt }.take(3).forEach { grade ->
+              GradeBadge(grade.content,Modifier.weight(1f),teacherRgb=grade.teacherRgb,onClick={onSection(Section.GRADES)})
+             }
+            }
+            Text("Ostatnie oceny • "+grades.size+" wpisów",style=MaterialTheme.typography.labelSmall)
+           }
+          }
+         }
+        }
+        if(groups.isEmpty() && data.gradesWarning==null) EmptyCard("Brak ocen w wybranym semestrze.")
+       }
+       Section.SCHEDULE -> {
+        data.schedule.warning?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+        if(data.today==now.date && data.schedule.warning==null) lessonSpotlight(data.schedule.rows,now)?.let { LessonSpotlightCard(it) { onSection(Section.SCHEDULE) } }
+        val rows=upcomingRows(data.schedule.rows,data.today,data.today).sortedBy { it.lesson?.start }
+        rows.take(3).forEach { LessonCard(it,now) }
+        if(rows.isEmpty() && data.schedule.warning==null) EmptyCard("Brak zajęć na dziś.")
+       }
+       Section.PRESENCE -> {
+        data.presence.warning?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+        if(data.presence.rows.isEmpty() && data.presence.warning==null) EmptyCard("Brak wpisów frekwencji na dziś.")
+        data.presence.rows.groupBy { it.title }.forEach { (title,rows) -> EmptyCard(title+": "+rows.size) }
+       }
+       else -> {
+        val result=when(section) { Section.NOTES->data.notes;Section.EXAMS->data.exams;else->data.homework }
+        result.warning?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+        val rows=if(section==Section.NOTES) result.rows.sortedByDescending { it.date } else upcomingRows(result.rows,data.today,data.today.plus(6,DateTimeUnit.DAY))
+        rows.take(3).forEach { row ->
+         Card(onClick={onSection(section)},modifier=Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
+          Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)) {
+           if(row.badge.isNotBlank()) Text(row.badge,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
+           Text(row.title,style=MaterialTheme.typography.titleMedium)
+           Text(row.detail,maxLines=3,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+           Text(row.date.take(10),style=MaterialTheme.typography.labelSmall)
+           if(section!=Section.NOTES) TextButton(onClick={onReminder(row)}) { Text("Przypomnij mi") }
+          }
+         }
+        }
+        if(rows.isEmpty() && result.warning==null) EmptyCard(if(section==Section.NOTES) "Brak pochwał i uwag." else "Brak terminów w najbliższych 7 dniach.")
+       }
       }
      }
     }
-    if(rows.isEmpty() && result.warning==null) item(key="empty:$section") { EmptyCard("Brak wpisów z terminem w najbliższych 7 dniach.") }
-    if(rows.size>8) item { TextButton(onClick={onSection(section)}) { Text("Zobacz pozostałe (${rows.size-8})") } }
    }
   } else if(state.busy) item { DayLoadingCards() }
+  item { TextButton(onClick={arrange=true},modifier=Modifier.fillMaxWidth()) { Text("Zmień kolejność elementów") } }
  }
 }
 @Composable private fun DashboardCount(title:String,count:String,modifier:Modifier,onClick:()->Unit) {
@@ -105,7 +138,7 @@ import kotlin.time.Clock
   }
  }
 }
-@Composable internal fun SchedulePane(state:ScreenState,modifier:Modifier,onCurrentWeek:()->Unit) {
+@Composable internal fun ScheduleListPane(state:ScreenState,modifier:Modifier,onCurrentWeek:()->Unit) {
  val now=liveClock()
  var query by remember { mutableStateOf("") }
  var selectedDay by remember(state.from,state.to) { mutableStateOf<String?>(null) }

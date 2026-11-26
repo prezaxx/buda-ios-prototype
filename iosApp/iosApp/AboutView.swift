@@ -31,13 +31,13 @@ enum BudaBuild {
                 }
                 Text("Twój wybór obejmuje dziennik, oceny i ustawienia. Kolory ocen nauczyciela są zachowane.").font(.footnote)
             }
-            Section("Nowe w 0.15.1") {
-                Label("Ręczne sprawdzanie niezależne od przełącznika powiadomień", systemImage: "arrow.clockwise")
-                Label("Główny dodatek push bez konta ChatGPT", systemImage: "person.badge.key")
-                Label("Jasny i ciemny motyw do wyboru", systemImage: "circle.lefthalf.filled")
-                Label("Odnowienie dostępu do wiadomości bez usuwania ocen", systemImage: "key")
-                Label("Zapisywanie odświeżonej sesji skrzynki", systemImage: "arrow.trianglehead.2.clockwise")
-                Label("Powiadomienia o różnych zmianach dziennika", systemImage: "bell.badge")
+            Section("Nowe w 0.17.0") {
+                Label("Powiadomienia na dolnym pasku, filtry i nieprzeczytane", systemImage: "bell.badge")
+                Label("Tygodniowy kalendarz oraz lista dni", systemImage: "calendar")
+                Label("Zebrania, informacje, nauczyciele i jadłospis", systemImage: "building.2")
+                Label("Lekcje planowane i dodatkowe zajęcia", systemImage: "list.bullet")
+                Label("Pulpit z ocenami, uwagami i własną kolejnością", systemImage: "rectangle.3.group")
+                Text("Ankiety otwierają moduł szkoły. Dostępność danych zależy od szkoły.").font(.footnote)
             }
             Section("Twoje powiadomienia") {
                 NavigationLink("Powiadomienia Web Push") { PushSetupView() }
@@ -46,7 +46,7 @@ enum BudaBuild {
                 NavigationLink("Centrum zmian") {
                     GradeHistoryView().onAppear { NotificationHistoryRoute.shared.batch = nil }
                 }
-                Text("Lokalne sprawdzanie zależy od iOS. Oddzielny dodatek Web Push wymaga połączenia sesji i zgody na powiadomienia. Nowy pilotaż odczytuje kategorie partiami. Alerty otwierają historię dodatku, oddzielną od lokalnego Centrum zmian.").font(.footnote)
+                Text("Lokalne sprawdzanie zależy od iOS. Oddzielny dodatek Web Push wymaga połączenia sesji i zgody na powiadomienia. Nowy pilotaż odczytuje kategorie partiami. Historia serwera jest dostępna w zakładce Powiadomienia. Dodatek automatycznie próbuje otworzyć Budę; iOS może wymagać potwierdzenia.").font(.footnote)
             }
             Section("Diagnostyka") {
                 Text(service.diagnostics).font(.footnote).textSelection(.enabled)

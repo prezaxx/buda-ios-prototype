@@ -5,7 +5,9 @@ import ComposeApp
 struct ComposeView: UIViewControllerRepresentable {
     var appearance: String = "system"
     func makeUIViewController(context: Context) -> UIViewController {
-        MainViewControllerKt.MainViewController(vault: KeychainVault(), notifications: NativeNotificationControls(), dataVault: KeychainVault(account: "offline-and-drafts-v1"))
+        MainViewControllerKt.MainViewController(vault: KeychainVault(), notifications: NativeNotificationControls(), dataVault: KeychainVault(account: "offline-and-drafts-v1"), notificationController: {
+            UIHostingController(rootView: NavigationStack { CloudNotificationView(batch: CloudNotificationRoute.shared.batch) })
+        })
     }
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
         uiViewController.overrideUserInterfaceStyle = appearance == "dark" ? .dark : (appearance == "light" ? .light : .unspecified)
@@ -18,6 +20,7 @@ struct ComposeView: UIViewControllerRepresentable {
     var body: some View {
         ComposeView(appearance: appearance)
             .ignoresSafeArea()
+            .task { await CloudNotifications.shared.refresh() }
             .preferredColorScheme(appearance == "dark" ? .dark : (appearance == "light" ? .light : nil))
             .sheet(item: Binding(
                 get: { router.active },

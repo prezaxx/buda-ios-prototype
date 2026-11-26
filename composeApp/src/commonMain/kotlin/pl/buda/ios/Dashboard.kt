@@ -3,8 +3,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.datetime.*
 import kotlinx.coroutines.*
 
-@Serializable data class DashboardData(val today:LocalDate,val schedule:DiaryResult,val exams:DiaryResult,val homework:DiaryResult)
-internal suspend fun loadDashboard(today:LocalDate,fetch:suspend(Section,String,String)->DiaryResult):DashboardData=coroutineScope {
+@Serializable data class DashboardData(val today:LocalDate,val schedule:DiaryResult,val exams:DiaryResult,val homework:DiaryResult,val notes:DiaryResult=DiaryResult(emptyList()),val presence:DiaryResult=DiaryResult(emptyList()),val grades:List<GradeRow> = emptyList(),val gradesWarning:String?=null)
+internal suspend fun loadDashboard(today:LocalDate,fetchGrades:suspend()->List<GradeRow> = {emptyList()},fetch:suspend(Section,String,String)->DiaryResult):DashboardData=coroutineScope {
  suspend fun load(section:Section,to:LocalDate):DiaryResult=try { fetch(section,today.toString(),to.toString()) }
  catch(e:CancellationException) { throw e }
  catch(e:Exception) { currentCoroutineContext().ensureActive();DiaryResult(emptyList(),safeError(e,section.label)) }
@@ -12,7 +12,15 @@ internal suspend fun loadDashboard(today:LocalDate,fetch:suspend(Section,String,
  val schedule=async { load(Section.SCHEDULE,today) }
  val exams=async { load(Section.EXAMS,end) }
  val homework=async { load(Section.HOMEWORK,end) }
- DashboardData(today,schedule.await(),exams.await(),homework.await())
+ val notes=async { load(Section.NOTES,today) }
+ val presence=async { load(Section.PRESENCE,today) }
+ val grades=async {
+  try { fetchGrades() to null }
+  catch(e:CancellationException) { throw e }
+  catch(e:Exception) { currentCoroutineContext().ensureActive();emptyList<GradeRow>() to safeError(e,"oceny") }
+ }
+ val gradeResult=grades.await()
+ DashboardData(today,schedule.await(),exams.await(),homework.await(),notes.await(),presence.await(),gradeResult.first,gradeResult.second)
 }
 internal fun upcomingRows(rows:List<DiaryRow>,from:LocalDate,to:LocalDate)=rows.filter {
  val date=try { LocalDate.parse(it.date.take(10)) } catch(e:Exception) { null }

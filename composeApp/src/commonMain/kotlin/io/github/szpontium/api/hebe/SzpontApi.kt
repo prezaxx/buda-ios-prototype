@@ -24,7 +24,8 @@ open class SzpontApi(
         val allowed = setOf("mobile/schedule/withchanges/byPupil", "mobile/schedule/extra/withchanges/byPupil",
             "mobile/presence/extra/byPupil", "mobile/exam/byPupil", "mobile/homework/byPupil",
             "mobile/note/byPupil", "mobile/announcement/byPupil", "mobile/grade/average/byPupil",
-            "mobile/grade/summary/byPupil")
+            "mobile/grade/summary/byPupil", "mobile/meetings/byPupil", "mobile/school/info",
+            "mobile/lesson/planned/byPupil", "mobile/eatery", "mobile/teacher/byPeriod")
         require(endpoint in allowed)
         return szpontHttpClient.request("GET", endpoint, restUrl, pupilId, query)
             ?: error("MissingDiaryEnvelope")

@@ -1,26 +1,33 @@
 import SwiftUI
 import AuthenticationServices
 import CryptoKit
+import Security
+import ComposeApp
 
-struct CloudChange: Decodable, Identifiable {
-    struct Item: Decodable { let title: String?; let details: String?; let date: String? }
-    let id: String
-    let student: String
-    let category: String
-    let at: String
-    let batch: String?
-    let before: Item?
-    let after: Item
-}
-struct CloudHistory: Decodable {
-    let history: [CloudChange]
-    let lastCheck: String?
-    let lastError: String?
+@MainActor final class CloudNotificationRoute: ObservableObject {
+    static let shared = CloudNotificationRoute()
+    @Published var batch: String?
 }
 @MainActor final class CloudNotifications: NSObject, ObservableObject, ASWebAuthenticationPresentationContextProviding {
     static let shared = CloudNotifications()
     static let origin = "https://buda-push-pilot.prezaxx-buda.workers.dev"
     @Published var entries: [CloudChange] = []
+    @Published var readIDs: Set<String> = []
+    private let readsVault = KeychainVault(account: "cloud-history-reads-v1")
+    private let cacheVault = KeychainVault(account: "cloud-history-cache-v1")
+    var unreadCount: Int { entries.filter { !readIDs.contains($0.id) }.count }
+    func markRead(_ changes: [CloudChange]) {
+        let next = readIDs.union(changes.map(\.id)).intersection(Set(entries.map(\.id)))
+        guard let data = try? JSONEncoder().encode(CloudReadState(ids: next)),
+              let text = String(data: data, encoding: .utf8), readsVault.write(value: text) else {
+            message = "Nie udało się zapisać oznaczenia przeczytania."; return
+        }
+        readIDs = next; updateBadge()
+    }
+    private func updateBadge() { NativeNavigation.shared.setUnreadCount(count: Int32(unreadCount)) }
+    private func clearHistory() {
+        entries = []; readIDs = []; _ = readsVault.clear(); _ = cacheVault.clear(); updateBadge()
+    }
     @Published var busy = false
     @Published var message = ""
     @Published var connected = false
@@ -31,6 +38,11 @@ struct CloudHistory: Decodable {
     override init() {
         super.init()
         connected = validToken != nil
+        if connected {
+            if let raw = readsVault.read(), let state = try? JSONDecoder().decode(CloudReadState.self, from: Data(raw.utf8)) { readIDs = state.ids }
+            if let raw = cacheVault.read(), let state = try? JSONDecoder().decode(CloudHistory.self, from: Data(raw.utf8)) { entries = state.history; lastCheck = state.lastCheck }
+        }
+        updateBadge()
     }
     private var validToken: String? {
         guard let t = vault.read(), t.count == 43, t != "KEYCHAIN_UNAVAILABLE" else { return nil }
@@ -77,7 +89,7 @@ struct CloudHistory: Decodable {
                     guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.userAuthenticationRequired) }
                     let grant = try JSONDecoder().decode(Grant.self, from: data)
                     guard grant.token.count == 43, self.vault.write(value: grant.token) else { throw URLError(.cannotWriteToFile) }
-                    self.entries = []; self.connected = true; self.busy = false
+                    self.clearHistory(); self.connected = true; self.busy = false
                     await self.refresh()
                 } catch {
                     self.busy = false; self.message = "Nie udało się połączyć historii. Spróbuj ponownie po odblokowaniu iPhone’a."
@@ -103,11 +115,15 @@ struct CloudHistory: Decodable {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard generation == attempt else { return }
             if (response as? HTTPURLResponse)?.statusCode == 401 {
-                _ = vault.clear(); connected = false; entries = []; message = "Dostęp wygasł. Połącz historię ponownie."; return
+                _ = vault.clear(); connected = false; clearHistory(); message = "Dostęp wygasł. Połącz historię ponownie."; return
             }
             guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
             let result = try JSONDecoder().decode(CloudHistory.self, from: data)
             entries = result.history; lastCheck = result.lastCheck; message = result.lastError ?? ""; connected = true
+            if let encoded = try? JSONEncoder().encode(result), let text = String(data: encoded, encoding: .utf8) {
+                if !cacheVault.write(value: text) { message = "Historia pobrana, ale zapis offline się nie udał." }
+            }
+            updateBadge()
         } catch {
             if generation == attempt { message = "Nie udało się odświeżyć historii. Sprawdź połączenie i spróbuj ponownie." }
         }
@@ -115,7 +131,7 @@ struct CloudHistory: Decodable {
     func disconnect() {
         let old = validToken
         generation = UUID(); authentication?.cancel(); authentication = nil
-        _ = vault.clear(); entries = []; connected = false; busy = false; message = ""; lastCheck = nil
+        _ = vault.clear(); clearHistory(); connected = false; busy = false; message = ""; lastCheck = nil
         if let old {
             Task {
                 var request = URLRequest(url: URL(string: Self.origin + "/api/native/revoke")!)
@@ -128,73 +144,134 @@ struct CloudHistory: Decodable {
 }
 @MainActor struct CloudNotificationView: View {
     @ObservedObject private var service = CloudNotifications.shared
+    @ObservedObject private var route = CloudNotificationRoute.shared
     @Environment(\.scenePhase) private var phase
     @State var batch: String?
     @State private var query = ""
     @State private var student = ""
+    @State private var category = ""
+    @State private var unreadOnly = false
+    @State private var filters = false
     private var filtered: [CloudChange] {
-        service.entries.filter {
-            (batch == nil || $0.batch == batch) &&
-            (student.isEmpty || $0.student == student) &&
-            (query.isEmpty || [$0.student, $0.category, $0.after.title ?? "", $0.after.details ?? ""].joined(separator: " ").localizedCaseInsensitiveContains(query))
-        }
+        filteredCloudChanges(service.entries, student: student, category: category, query: query, unreadOnly: unreadOnly, readIDs: service.readIDs, batch: batch)
     }
-    private func date(_ raw: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return (formatter.date(from: raw) ?? ISO8601DateFormatter().date(from: raw))?.formatted(date: .abbreviated, time: .shortened) ?? raw
+    private var groups: [(String,[CloudChange])] {
+        Dictionary(grouping: filtered) { cloudDate($0.at, time: false) }.map { ($0.key,$0.value) }.sorted { ($0.1.first?.at ?? "") > ($1.1.first?.at ?? "") }
     }
     var body: some View {
         List {
-            Section {
-                Label("Powiadomienia z serwera", systemImage: "bell.badge.fill").font(.title2.bold()).foregroundStyle(.indigo)
-                Text("Ta sama historia, z której pochodzą banery — również gdy Buda była zamknięta.").font(.footnote)
-                if !service.connected {
+            if !service.connected {
+                Section {
+                    Label("Połącz powiadomienia", systemImage: "bell.badge.fill").font(.headline)
                     Button("Połącz historię z Budą") { service.pair() }.disabled(service.busy)
-                    Text("Zaloguj się istniejącym kluczem dostępu do powiadomień i potwierdź połączenie. Nie twórz nowego konta.").font(.footnote)
-                } else {
-                    Button("Odśwież historię", systemImage: "arrow.clockwise") { Task { await service.refresh() } }.disabled(service.busy)
-                    if let last = service.lastCheck { Text("Ostatni odczyt serwera: " + date(last)).font(.caption) }
+                    Text("Użyj istniejącego klucza dostępu (Face ID) dodatku powiadomień. To nie jest plik JSON.").font(.footnote)
                 }
-                if service.busy { ProgressView("Pobieranie…") }
-                if !service.message.isEmpty { Text(service.message).foregroundStyle(.orange) }
             }
+            if service.busy { ProgressView("Odświeżanie…") }
+            if !service.message.isEmpty { Text(service.message).font(.footnote).foregroundStyle(.orange) }
             if service.connected {
-                Section("Filtry") {
-                    Picker("Uczeń", selection: $student) {
-                        Text("Wszyscy").tag("")
-                        ForEach(Array(Set(service.entries.map(\.student))).sorted(), id: \.self) { Text($0).tag($0) }
+                Section {
+                    HStack {
+                        Label("\(service.unreadCount) nowych", systemImage: "bell.badge").foregroundStyle(.indigo)
+                        Spacer()
+                        Button("Przeczytane") { service.markRead(filtered) }.disabled(filtered.isEmpty)
                     }
-                    if batch != nil { Button("Pokaż wszystkie powiadomienia") { batch = nil } }
+                    if let at = service.lastCheck { Text("Odczyt dziennika: " + cloudDate(at)).font(.caption).foregroundStyle(.secondary) }
+                    if batch != nil { Button("Pokaż wszystkie powiadomienia") { batch = nil; route.batch = nil } }
+                }
+                if filters {
+                    Section("Filtry") {
+                        Picker("Uczeń", selection: $student) {
+                            Text("Wszyscy").tag("")
+                            ForEach(Array(Set(service.entries.map(\.student))).sorted(), id: \.self) { Text($0).tag($0) }
+                        }
+                        Picker("Rodzaj", selection: $category) {
+                            Text("Wszystkie").tag("")
+                            ForEach(Array(Set(service.entries.map(\.category))).sorted(), id: \.self) { Text($0).tag($0) }
+                        }
+                        Toggle("Tylko nieprzeczytane", isOn: $unreadOnly)
+                        Button("Wyczyść filtry") { student = ""; category = ""; query = ""; unreadOnly = false; batch = nil; route.batch = nil }
+                    }
                 }
                 if filtered.isEmpty && !service.busy {
-                    Section {
-                        Text(batch == nil ? "Brak zapisanych zdarzeń pasujących do filtrów." : "To zdarzenie nie jest dostępne w ostatnich 100 zmianach tego konta. Pokaż całą historię lub sprawdź połączone konto.")
-                    }
+                    Text(batch == nil ? "Brak zdarzeń pasujących do filtrów." : "To powiadomienie nie znajduje się w ostatnich 100 zmianach połączonego konta. Pokaż całą historię.").foregroundStyle(.secondary)
                 }
-                ForEach(filtered) { entry in
-                    Section {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(entry.student + " • " + entry.category).font(.caption.bold()).foregroundStyle(.indigo)
-                            Text(entry.after.title ?? entry.category).font(.headline)
-                            Text(entry.after.details ?? "").font(.body).textSelection(.enabled)
-                            if let before = entry.before {
-                                Text("Przed zmianą: " + [before.title, before.details].compactMap { $0 }.joined(separator: " • ")).font(.footnote).foregroundStyle(.secondary)
+                ForEach(groups, id: \.0) { group in
+                    Section(group.0) {
+                        ForEach(group.1) { entry in
+                            NavigationLink {
+                                CloudChangeDetail(entry: entry).onAppear { service.markRead([entry]) }
+                            } label: {
+                                HStack(alignment: .top, spacing: 12) {
+                                    Image(systemName: cloudIcon(entry.category)).font(.title3).foregroundStyle(.indigo)
+                                        .frame(width: 40, height: 40).background(Color.indigo.opacity(0.12), in: Circle())
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        HStack {
+                                            Text(entry.category).font(.headline)
+                                            if !service.readIDs.contains(entry.id) { Circle().fill(Color.indigo).frame(width: 7, height: 7) }
+                                            Spacer()
+                                        }
+                                        Text((entry.before == nil ? "Nowe: " : "Zmiana: ") + [entry.after.title, entry.after.details].compactMap { $0 }.joined(separator: " • ")).lineLimit(3)
+                                        Text(entry.student + " • " + cloudDate(entry.at)).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }.padding(.vertical, 5)
                             }
-                            Text("Wykryto: " + date(entry.at)).font(.caption).foregroundStyle(.secondary)
-                        }.padding(.vertical, 6)
+                        }
                     }
-                }
-                Section {
-                    Button("Odłącz historię na tym iPhonie", role: .destructive) { service.disconnect() }
-                    Text("Odłącza tylko dostęp do historii w aplikacji. Nie wyłącza powiadomień Web Push.").font(.caption)
                 }
             }
+            Section("Historia i ustawienia") {
+                NavigationLink("Zmiany wykryte na iPhonie") { GradeHistoryView() }
+                NavigationLink("Ustawienia powiadomień") { NotificationSettingsView() }
+                if service.connected { Button("Odłącz historię na tym iPhonie", role: .destructive) { service.disconnect() } }
+                Text("Historia obejmuje ostatnie 100 zmian serwera. Odłączenie historii nie wyłącza Web Push.").font(.caption)
+            }
         }
-        .navigationTitle("Powiadomienia")
+        .listStyle(.insetGrouped)
+        .navigationTitle("Powiadomienia").navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { filters.toggle() } label: { Image(systemName: "line.3.horizontal.decrease.circle") }.accessibilityLabel("Filtry powiadomień")
+            }
+        }
         .searchable(text: $query, prompt: "Uczeń, przedmiot lub temat")
         .task { await service.refresh() }
         .refreshable { await service.refresh() }
+        .onChange(of: route.batch) { value in batch = value; student = ""; category = ""; unreadOnly = false; query = "" }
         .onChange(of: phase) { value in if value == .active { Task { await service.refresh() } } }
+    }
+}
+private func cloudDate(_ raw: String, time: Bool = true) -> String {
+    let parser = ISO8601DateFormatter(); parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    guard let date = parser.date(from: raw) ?? ISO8601DateFormatter().date(from: raw) else { return raw }
+    return date.formatted(date: .abbreviated, time: time ? .shortened : .omitted)
+}
+private func cloudIcon(_ category: String) -> String {
+    let value = category.lowercased()
+    if value.contains("ocen") { return "graduationcap" }
+    if value.contains("wiadomo") { return "envelope" }
+    if value.contains("plan") || value.contains("zaj") { return "calendar" }
+    if value.contains("frekw") { return "person.badge.clock" }
+    if value.contains("sprawdz") { return "checklist" }
+    return "bell"
+}
+private struct CloudChangeDetail: View {
+    let entry: CloudChange
+    var body: some View {
+        List {
+            Section(entry.category) {
+                Text(entry.student).font(.headline)
+                Text(entry.after.title ?? "").font(.title3.bold())
+                Text(entry.after.details ?? "").textSelection(.enabled)
+                if let date = entry.after.date, !date.isEmpty { Text("Termin / data wpisu: " + date).font(.footnote) }
+            }
+            if let before = entry.before {
+                Section("Przed zmianą") {
+                    Text(before.title ?? "")
+                    Text(before.details ?? "").textSelection(.enabled)
+                }
+            }
+            Section { Text("Wykryto: " + cloudDate(entry.at)) }
+        }.navigationTitle("Szczegóły").navigationBarTitleDisplayMode(.inline)
     }
 }

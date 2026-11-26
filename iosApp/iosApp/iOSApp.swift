@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import ComposeApp
 
 @MainActor final class BudaAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -17,11 +18,13 @@ struct iOSApp: App {
                 guard url.scheme == "budadiary", url.host == "notifications" else { return }
                 let raw = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "batch" })?.value
                 let batch = raw.flatMap { UUID(uuidString: $0) != nil ? $0 : nil }
-                AppSheetRouter.shared.present(.cloudHistory(batch: batch))
+                CloudNotificationRoute.shared.batch = batch
+                AppSheetRouter.shared.requestDismiss()
+                NativeNavigation.shared.openNotifications()
             }
         }
             .onChange(of: phase) { value in
-                if value == .active { GradeNotificationService.shared.becameActive() }
+                if value == .active { GradeNotificationService.shared.becameActive(); Task { await CloudNotifications.shared.refresh() } }
                 else if value == .background { GradeNotificationService.shared.leftForeground() }
             }
     }
