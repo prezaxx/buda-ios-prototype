@@ -70,7 +70,7 @@ import androidx.compose.ui.unit.dp
        }
       }
      }
-     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
+     if(state.section !in listOf(Section.NOTIFICATIONS,Section.SURVEYS)) Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {
       Text(state.section.label,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.weight(1f))
       TextButton(onClick={model.refresh()},enabled=!state.busy) { Text("Odśwież") }
      }
@@ -135,7 +135,7 @@ import androidx.compose.ui.unit.dp
      }
      }
     }
-    if(state.selected!=null && state.students.isNotEmpty()) BudaNavigation(state.section,order=menuOrder,onOrder={order -> if(model.localData.saveMenuOrder(order)) { menuOrder=order;layoutError=false } else layoutError=true}) { model.section(it) }
+    if(state.selected!=null && state.students.isNotEmpty()) BudaNavigation(state.section,order=menuOrder,onOrder={order -> if(model.localData.saveMenuOrder(order)) { menuOrder=order;layoutError=false } else layoutError=true}) { if(it==Section.NOTIFICATIONS) notifications.showHistory() else model.section(it) }
    }
   }
  }
